@@ -1,0 +1,14 @@
+{
+  "debug": true,
+  "supports_color": true,
+  "use_lucia_traceback": false,
+  "print_comments": true,
+  "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
+  "home_dir": "E:\\LuciaAPL\\env",
+  "recursion_limit": 9999,
+  "color_scheme": {
+    "exception": "#F44350",
+    "debug": "#434343",
+    "comment": "#757575"
+  }
+}
