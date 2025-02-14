@@ -34,6 +34,28 @@ class Parser:
         if self.token[0] == 'IDENTIFIER' and self.token[1] in ('void', 'int', 'float', 'string', 'bool', 'any'):
             return self.parse_type()
 
+        if self.token == ('IDENTIFIER', 'while'):
+            return self.parse_while_loop()
+
+        if self.token == ('SEPARATOR', '['):
+            self.next()
+            elements = []
+            while self.token != ('SEPARATOR', ']'):
+                elements.append(self.parse_expression())
+                if self.token == ('SEPARATOR', ']'):
+                    break
+                if self.token == ('SEPARATOR', '...'):
+                    self.check_for('SEPARATOR', '...')
+                    self.next()
+                    end = self.parse_expression()
+                    self.check_for('SEPARATOR', ']')
+                    self.next()
+                    return {"type": "ITERABLE", "iterable_type": "LIST_COMPLETION", "pattern": elements, "end": end}
+                self.check_for('SEPARATOR', ',')
+                self.next()
+            self.next()
+            return {"type": "ITERABLE", "iterable_type": "LIST", "elements": elements}
+
         if self.token == ('IDENTIFIER', 'for'):
             return self.parse_for_loop()
 
@@ -354,4 +376,47 @@ class Parser:
             "condition": condition,
             "body": body,
             "else_body": else_body
+        }
+
+    def parse_for_loop(self):
+        self.check_for('IDENTIFIER', 'for')
+        self.next()
+        self.check_for('SEPARATOR', '(')
+        self.next()
+        variable = self.token[1]
+        self.next()
+        self.check_for('IDENTIFIER', 'in')
+        self.next()
+        iterable = self.parse_expression()
+        self.check_for('SEPARATOR', ')')
+        self.next()
+        self.check_for('SEPARATOR', '{')
+        self.next()
+        body = self.parse_body()
+        self.check_for('SEPARATOR', '}')
+        self.next()
+        return {
+            "type": "FOR",
+            "variable_name": variable,
+            "iterable": iterable,
+            "body": body
+        }
+
+    def parse_while_loop(self):
+        self.check_for('IDENTIFIER', 'while')
+        self.next()
+        self.check_for('SEPARATOR', '(')
+        self.next()
+        condition = self.parse_expression()
+        self.check_for('SEPARATOR', ')')
+        self.next()
+        self.check_for('SEPARATOR', '{')
+        self.next()
+        body = self.parse_body()
+        self.check_for('SEPARATOR', '}')
+        self.next()
+        return {
+            "type": "WHILE",
+            "condition": condition,
+            "body": body
         }

@@ -1,5 +1,5 @@
 class Boolean:
-    def __init__(self, value, literal):
+    def __init__(self, value, literal=None):
         value = str(value).strip().lower()
         if value == 'true':
             self.value = 'true'
@@ -14,8 +14,14 @@ class Boolean:
             self.value = 'null'
             self.literal = None
         else:
-            raise ValueError(f"Invalid boolean value: '{value}'")
-        self.literal = literal
+            if bool(value):
+                self.value = 'true'
+                self.literal = True
+            else:
+                self.value = 'false'
+                self.literal = False
+        if literal is not None:
+            self.literal = literal
 
     def __str__(self):
         return self.value

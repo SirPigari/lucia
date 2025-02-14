@@ -2,6 +2,7 @@ import difflib
 import os
 from env.Lib.Builtins import functions as b_functions
 from env.Lib.Builtins import classes as b_classes
+from env.Lib.Builtins import exceptions as b_exceptions
 import importlib.util
 import sys
 import lexer
@@ -41,6 +42,7 @@ class Interpreter:
             "int": {"is_builtin": True, "function": b_functions.int},
             "float": {"is_builtin": True, "function": b_functions.float},
             "str": {"is_builtin": True, "function": b_functions.str},
+            "range": {"is_builtin": True, "function": b_functions.range},
         }
         self.objects = {}
         self.return_value = None
@@ -125,6 +127,12 @@ class Interpreter:
                     self.interpret(statement["else_body"])
             elif statement["type"] == "CALL":
                 self.evaluate(statement)
+            elif statement["type"] == "ITERABLE":
+                self.evaluate(statement)
+            elif statement["type"] == "WHILE":
+                self.evaluate(statement)
+            elif statement["type"] == "FOR":
+                self.evaluate(statement)
             elif statement["type"] == "COMMENT":
                 color = self.config.get("color_scheme", {}).get("comment", "#757575")
                 ansi_color = hex_to_ansi(color)
@@ -135,18 +143,56 @@ class Interpreter:
                 return b_classes.Boolean(statement["value"], statement["literal_value"])
             elif statement["type"] == "RETURN":
                 self.return_value = self.evaluate(statement["value"])
+                return "RETURN"
             elif statement["type"] == "IMPORT":
                 module_name = statement["module_name"]
                 as_name = statement["as"]
                 self.import_module(module_name, as_name)
             elif statement["type"] == "ASSIGNMENT":
                 self.variables[statement["name"]] = self.evaluate(statement["value"])
+            elif statement["type"] == "VARIABLE":
+                if statement["name"] == "null":
+                    return None
+                if statement["name"] not in self.variables:
+                    if statement["name"] in self.functions:
+                        raise NameError(
+                            f"Name '{statement['name']}' is not defined. Did you mean: '{statement['name']}()'?")
+                    if statement["name"] in self.objects:
+                        return f"<Object at {id(self.objects[statement['name']])}>"
+                    closest_match = find_closest_match(self.variables.keys(), statement["name"])
+                    if closest_match:
+                        raise NameError(f"Name '{statement['name']}' is not defined. Did you mean: '{closest_match}'?")
+                    raise NameError(f"Name '{statement['name']}' is not defined.")
+                return self.variables[statement["name"]]
             else:
                 raise SyntaxError(f"Unexpected statement: {statement}")
 
     def evaluate(self, statement):
-        if statement["type"] == "NUMBER":
+        if statement["type"] == "FUNCTIONDECLARATION":
+            statement["is_builtin"] = False
+            self.functions[statement["name"]] = statement
+        elif statement["type"] == "VARIABLEDECLARATION":
+            self.variables[statement["name"]] = self.evaluate(statement["value"])
+        elif statement["type"] == "NUMBER":
             return float(statement["value"])
+        elif statement["type"] == "IF":
+            condition = self.evaluate(statement["condition"])
+            if str(condition) == "true":
+                self.interpret(statement["body"])
+            elif statement.get("else_body"):
+                self.interpret(statement["else_body"])
+        elif statement["type"] == "RETURN":
+            self.return_value = self.evaluate(statement["value"])
+        elif statement["type"] == "ASSIGNMENT":
+            self.variables[statement["name"]] = self.evaluate(statement["value"])
+        elif statement["type"] == "IMPORT":
+            module_name = statement["module_name"]
+            as_name = statement["as"]
+            self.import_module(module_name, as_name)
+        elif statement["type"] == "COMMENT":
+            color = self.config.get("color_scheme", {}).get("comment", "#757575")
+            ansi_color = hex_to_ansi(color)
+            print(f"{ansi_color}<{statement["value"]}>\033[0m")
         elif statement["type"] == "NAMEDARG":
             return {statement["name"]: self.evaluate(statement["value"])}
         elif statement["type"] == "STRING":
@@ -181,6 +227,65 @@ class Interpreter:
                     raise NameError(f"Name '{statement['name']}' is not defined. Did you mean: '{closest_match}'?")
                 raise NameError(f"Name '{statement['name']}' is not defined.")
             return self.variables[statement["name"]]
+        elif statement["type"] == "ITERABLE":
+            if statement["iterable_type"] == "LIST":
+                l = []
+                for element in statement["elements"]:
+                    l.append(self.evaluate(element))
+                return l
+            elif statement["iterable_type"] == "LIST_COMPLETION":
+                pattern = statement["pattern"]
+                end = self.evaluate(statement["end"])
+
+                pattern_values = [self.evaluate(p) for p in pattern]
+
+                differences = [pattern_values[i + 1] - pattern_values[i] for i in range(len(pattern_values) - 1)]
+
+                if all(d == differences[0] for d in differences):
+                    step = differences[0]
+                    start = pattern_values[0]
+                    result = []
+                    current = start
+
+                    while current <= end:
+                        result.append(current)
+                        current += step
+
+                    return result
+
+                elif len(pattern_values) >= 2:
+                    fibonacci_like = True
+                    for i in range(len(pattern_values) - 2):
+                        if pattern_values[i] + pattern_values[i + 1] != pattern_values[i + 2]:
+                            fibonacci_like = False
+                            break
+
+                    if fibonacci_like:
+                        start1, start2 = pattern_values[0], pattern_values[1]
+                        result = [start1, start2]
+                        while result[-1] <= end:
+                            result.append(result[-2] + result[-1])
+
+                        return result
+
+                if self.config.get("warnings", True):
+                    raise b_exceptions.ListPatterRecognitionWarning(
+                        f"List pattern was not recognized: {pattern_values}")
+                else:
+                    return pattern_values + [end]
+            else:
+                raise SyntaxError(f"Unexpected iterable type: {statement['iterable_type']}")
+        elif statement["type"] == "FOR":
+            variable = statement["variable_name"]
+            iterable = self.evaluate(statement["iterable"])
+            for element in iterable:
+                self.variables[variable] = element
+                self.interpret(statement["body"])
+        elif statement["type"] == "WHILE":
+            condition = self.evaluate(statement["condition"])
+            while b_classes.Boolean(condition).literal:
+                result = self.interpret(statement["body"])
+                condition = self.evaluate(statement["condition"])
         elif statement["type"] == "OPERATION":
             left = self.evaluate(statement["left"])
             right = self.evaluate(statement["right"])

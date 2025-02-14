@@ -3,6 +3,7 @@ import sys
 str_ = str
 int_ = int
 float_ = float
+range_ = range
 
 def print(*args, end='\n'):
     args2 = []
@@ -34,3 +35,13 @@ def int(obj):
 
 def float(obj):
     return float_(obj)
+
+def range(start, stop=None, step=1):
+    try:
+        start, stop, step = int(start), int(stop), int(step)
+    except ValueError:
+        raise TypeError("Function range() takes only integers as arguments.")
+    if stop is None:
+        stop = start
+        start = 0
+    return range_(start, stop, step)
