@@ -2,8 +2,8 @@ import os
 import sys
 if getattr(sys, 'frozen', False):
     base_path = sys._MEIPASS
-    os.environ['TCL_LIBRARY'] = os.path.join(base_path, "tcl8.6")
-    os.environ['TK_LIBRARY'] = os.path.join(base_path, "tk8.6")
+    os.environ['TCL_LIBRARY'] = os.path.join(base_path, "tcl/tcl8.6")
+    os.environ['TK_LIBRARY'] = os.path.join(base_path, "tcl/tk8.6")
 else:
     os.environ['TCL_LIBRARY'] = r"E:\Python\Python313\tcl\tcl8.6"
     os.environ['TK_LIBRARY'] = r"E:\Python\Python313\tcl\tk8.6"
@@ -27,6 +27,18 @@ import random
 import winshell
 import pythoncom
 from win32com.client import Dispatch
+import time
+import traceback
+
+if getattr(sys, 'frozen', False):
+    # If running as a bundled app, use _MEIPASS to get the resource path
+    base_path = sys._MEIPASS
+else:
+    # If running normally (i.e. during development)
+    base_path = os.path.join(os.path.dirname(__file__), "build\\assets")
+
+os.chdir(base_path)
+
 
 version = "1.0"
 
@@ -53,6 +65,8 @@ class Installer:
     def __init__(self, version="1.0"):
         self.version = version
         self.root = tk.Tk()
+        if os.path.exists("installer.ico"):
+            self.root.iconbitmap(os.path.join(base_path, "installer.ico"))
         self.root.title(f"Lucia Installer - {self.version}")
         self.root.geometry("625x385")
         self.root.resizable(False, False)
@@ -122,7 +136,7 @@ class Installer:
             return None
 
     def add_image(self):
-        image_path = "placeholder.png"
+        image_path = f"{base_path}\\placeholder.png"
         try:
             img = Image.open(image_path)
             img = img.resize((156, 385), Image.LANCZOS)
@@ -166,6 +180,8 @@ class Installer:
             if self.installed_path.exists():
                 d = tk.Toplevel(master=self.root)
                 d.title("Uninstalling Lucia")
+                if os.path.exists("installer.ico"):
+                    d.iconbitmap("installer.ico")
                 d.geometry("300x100")
                 d.resizable(False, False)
                 d.protocol("WM_DELETE_WINDOW", lambda: self.on_closing())
@@ -208,6 +224,8 @@ class Installer:
     def install(self):
         d = tk.Toplevel(master=self.root)
         d.title("Installing Lucia")
+        if os.path.exists("installer.ico"):
+            d.iconbitmap("installer.ico")
         d.geometry("300x100")
         d.resizable(False, False)
         d.protocol("WM_DELETE_WINDOW", lambda: self.on_closing())
@@ -222,6 +240,23 @@ class Installer:
             precompile = self.precompile_var.get()
             download_libraries = self.download_libraries_var.get()
             add_to_path = self.add_to_path_var.get()
+
+            timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+            log_dir = os.path.join(install_path, f"lucia-Release{self.version}", "env", "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            log_file = os.path.join(log_dir, f"{timestamp}.log")
+
+            # Function to write logs
+            def write_log(message):
+                with open(log_file, 'a') as log:
+                    log.write(message + "\n")
+
+            def log_exception():
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                exception_details = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+                write_log(f"ERROR: {exception_details}")
+                messagebox.showerror("Error", f"An error occurred. Check the log file at: {log_file}")
+                d.destroy()
 
             steps = 5  # Including the unzip step
             if precompile:
@@ -271,6 +306,8 @@ class Installer:
             except requests.exceptions.RequestException as e:
                 messagebox.showerror("Error", f"Error downloading the release: {e}")
                 d.destroy()
+                write_log(f"ERROR: {str(e)}")
+                log_exception()
                 return
 
             try:
@@ -282,6 +319,8 @@ class Installer:
             except zipfile.BadZipFile as e:
                 messagebox.showerror("Error", f"Error extracting the release: {e}")
                 d.destroy()
+                write_log(f"ERROR: {str(e)}")
+                log_exception()
                 return
 
             try:
@@ -290,8 +329,9 @@ class Installer:
                 download_bar.step(step)
                 d.update_idletasks()
             except Exception as e:
+                write_log(f"ERROR: {str(e)}")
+                log_exception()
                 print(f"Error removing zip file: {e}")
-
 
             try:
                 with open(os.path.join(install_path, f"lucia-Release{self.version}\\env", "config.json"), 'w') as file:
@@ -322,6 +362,8 @@ class Installer:
             except Exception as e:
                 messagebox.showerror("Error", f"Error creating config file: {e}")
                 d.destroy()
+                write_log(f"ERROR: {str(e)}")
+                log_exception()
                 return
 
             if precompile:
@@ -329,29 +371,50 @@ class Installer:
                 lucia_path = os.path.join(install_path, f"lucia-Release{self.version}")
                 lucia_path_py = os.path.join(lucia_path, "lucia.py")
                 lucia_path_exe = os.path.join(lucia_path, "lucia.exe")
+                print(lucia_path_py)
 
                 if not os.path.exists(lucia_path_py):
                     messagebox.showerror("Error", "Lucia source file not found for compilation.")
                     d.destroy()
+                    write_log(f"ERROR: {str(e)}")
+                    log_exception()
                     return
 
+                os.makedirs(os.path.join(lucia_path, "env\\build"), exist_ok=True)
+
                 try:
-                    subprocess.run([
-                        sys.executable, "-m", "PyInstaller",
-                        "--onefile", "--noconsole",
+                    if getattr(sys, 'frozen', False):
+                        python_exe = sys._base_executable
+                    else:
+                        python_exe = sys.executable
+
+                    command = [
+                        "pyinstaller",
+                        "--onefile", f"--icon={os.path.join(base_path, 'installer.ico')}",
                         "--add-data", f"{lucia_path}{os.pathsep}.",
-                        "--distpath", lucia_path,  # Set output directory to lucia_path
-                        "--workpath", os.path.join(lucia_path, "build"),  # Avoid cluttering main dir
-                        "--specpath", os.path.join(lucia_path, "build"),  # Keep spec file in build dir
+                        "--distpath", lucia_path,
+                        "--workpath", os.path.join(lucia_path, "env\\build"),
+                        "--specpath", os.path.join(lucia_path, "env\\build"),
                         lucia_path_py
-                    ], check=True)
+                    ]
+
+                    ctypes.windll.shell32.ShellExecuteW(None, "runas", python_exe, ' '.join(command), None, 1)
 
                     print(f"Compilation successful. Executable saved to {lucia_path_exe}")
                     download_bar.step(step)
                     d.update_idletasks()
+
                 except subprocess.CalledProcessError as e:
                     messagebox.showerror("Error", f"Compilation failed: {e}")
                     d.destroy()
+                    write_log(f"ERROR: {str(e)}")
+                    log_exception()
+                    return
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error compiling Lucia: {e}")
+                    d.destroy()
+                    write_log(f"ERROR: {str(e)}")
+                    log_exception()
                     return
             if download_libraries:
                 url = f"https://github.com/SirPigari/lucia/releases/download/Release{self.version}/Lib.zip"
@@ -447,6 +510,8 @@ class Installer:
                     messagebox.showerror("Error", f"Failed to add {lucia_path} to PATH.\n{str(e)}")
                     download_bar.step(step)
                     d.update_idletasks()
+                    write_log(f"ERROR: {str(e)}")
+                    log_exception()
                 print("Lucia added to PATH successfully.")
                 download_bar.step(step)
                 d.update_idletasks()

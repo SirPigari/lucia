@@ -6,3 +6,7 @@ dist
 installer.spec
 lucia.spec
 env/config.json
+Lib/
+.idea
+.gitignore
+__pycache__/
