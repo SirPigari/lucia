@@ -1,2 +1,8 @@
 .venv
 test.lucia
+installer.py
+build
+dist
+installer.spec
+lucia.spec
+env/config.json

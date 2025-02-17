@@ -9,6 +9,7 @@ import lexer
 import pparser
 import re
 import math
+import random
 
 def find_closest_match(word_list, target_word):
     if not word_list:
@@ -43,6 +44,14 @@ class Interpreter:
             "float": {"is_builtin": True, "function": b_functions.float},
             "str": {"is_builtin": True, "function": b_functions.str},
             "range": {"is_builtin": True, "function": b_functions.range},
+            "exit": {"is_builtin": True, "function": b_functions.exit},
+            "help": {"is_builtin": True, "function": lambda c=None: b_functions.help(self.config, c)},
+            "license": {"is_builtin": True, "function": lambda: b_functions.license(self.config)},
+            "readme": {"is_builtin": True, "function": lambda: b_functions.readme(self.config)},
+            "modules": {"is_builtin": True, "function": lambda: b_functions.modules(self.config)},
+            "credits": {"is_builtin": True, "function": lambda: b_functions.credits(self.config)},
+            "keywords": {"is_builtin": True, "function": b_functions.keywords},
+            "version": {"is_builtin": True, "function": lambda: b_functions.version(self.config)},
         }
         self.objects = {}
         self.return_value = None
@@ -382,7 +391,7 @@ class Interpreter:
                 elif module.rsplit(".", 1)[1] == "py":
                     with open(os.path.join(lib_dir, module_name, module), 'r', encoding='utf-8') as file:
                         code = file.read()
-                    globals_ = {**self.variables, **self.functions, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math}
+                    globals_ = {**self.variables, **self.functions, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math, "random": random}
                     locals_ = {}
                     module_spec = importlib.util.spec_from_file_location(original_module_name, module_path)
 
@@ -464,6 +473,8 @@ class Interpreter:
                 raise NameError(f"Function '{object_name}.{function_name}' is not defined. Did you mean: '{object_name}.{closest_match}'?")
             raise NameError(f"Function '{function_name}' is not defined.")
         if functions[function_name]["is_builtin"]:
+            print(functions[function_name]["function"])
+            print(type(functions[function_name]["function"]))
             return functions[function_name]["function"](*pos_args, **named_args)
 
         body = functions[function_name]["body"]

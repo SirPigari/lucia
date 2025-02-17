@@ -1,82 +1,473 @@
 import os
 import sys
-import ctypes
+if getattr(sys, 'frozen', False):
+    base_path = sys._MEIPASS
+    os.environ['TCL_LIBRARY'] = os.path.join(base_path, "tcl8.6")
+    os.environ['TK_LIBRARY'] = os.path.join(base_path, "tk8.6")
+else:
+    os.environ['TCL_LIBRARY'] = r"E:\Python\Python313\tcl\tcl8.6"
+    os.environ['TK_LIBRARY'] = r"E:\Python\Python313\tcl\tk8.6"
+import requests
+import zipfile
 import shutil
-import subprocess
-import winreg
+from pathlib import Path
+import json
+from PIL import Image, ImageTk
 import tkinter as tk
+from tkinter import messagebox, filedialog
+from tkinter import ttk
+import _winapi as winapi
+import threading
+import subprocess
+from io import BytesIO
+import winreg as reg
+import ctypes
+import platform
+import random
+import winshell
+import pythoncom
+from win32com.client import Dispatch
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
+version = "1.0"
 
 def is_admin():
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
+    """Check if the script is run as administrator."""
+    if platform.system() == "Windows":
+        return ctypes.windll.shell32.IsUserAnAdmin() != 0
+    else:
+        return os.geteuid() == 0
 
 
 def run_as_admin():
-    script = sys.argv[0]
-    params = " ".join(f'"{arg}"' for arg in sys.argv[1:])
-
-    try:
-        subprocess.run(["powershell", "Start-Process", "python", f"'{script}' {params}", "-Verb", "RunAs"], check=True)
-    except subprocess.CalledProcessError:
-        print("Failed to elevate privileges.")
-    sys.exit()
-
-
-def add_to_path(script_path):
-    script_dir = os.path.dirname(script_path)
-    os.chdir(script_dir)
-
-    os.environ["PATH"] += os.pathsep + script_dir
-
-    try:
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
-                            r"System\CurrentControlSet\Control\Session Manager\Environment",
-                            0, winreg.KEY_READ | winreg.KEY_WRITE) as key:
-            current_path, _ = winreg.QueryValueEx(key, "Path")
-
-            if script_dir not in current_path:
-                new_path = current_path + os.pathsep + script_dir
-                winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_path)
-                print(f"Successfully added {script_dir} to PATH.")
-            else:
-                print(f"{script_dir} is already in PATH.")
-        os.system(
-            'powershell -Command "$env:Path = [System.Environment]::GetEnvironmentVariable(\'Path\', [System.EnvironmentVariableTarget]::Machine)"')
-    except PermissionError:
-        print("Permission denied! Run this script as an administrator.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    """Re-run the script with admin privileges."""
+    if platform.system() == "Windows":
+        # Command to run the script with admin privileges
+        script = sys.executable + ' ' + __file__
+        # Use subprocess to invoke the script in a hidden window
+        subprocess.run(['powershell', '-Command', f'Start-Process cmd.exe -ArgumentList "/c {script}" -Verb RunAs -WindowStyle Hidden'])
+    else:
+        print("Linux/Unix systems are not supported.")
 
 
-def copy_files_to_appdata():
-    appdata_path = os.getenv('APPDATA')
-    lucia_dir = os.path.join(appdata_path, 'Lucia')
+class Installer:
+    def __init__(self, version="1.0"):
+        self.version = version
+        self.root = tk.Tk()
+        self.root.title(f"Lucia Installer - {self.version}")
+        self.root.geometry("625x385")
+        self.root.resizable(False, False)
 
-    if not os.path.exists(lucia_dir):
-        os.makedirs(lucia_dir)
-        print(f"Created directory: {lucia_dir}")
+        self.default_path = Path(f"C:\\Users\\{os.getlogin()}\\AppData\\Roaming\\LuciaAPL\\")
+        self.installed_path = Path(self.default_path)
 
-    for item in os.listdir("."):
-        s = os.path.join(".", item)
-        d = os.path.join(lucia_dir, item)
-        if os.path.isdir(s):
-            shutil.copytree(s, d, dirs_exist_ok=True)
-        else:
-            shutil.copy2(s, d)
+        self.installed_version = self.get_installed_version()
 
-    print(f"Files copied to {lucia_dir}.")
-    return lucia_dir
+        self.add_image()
 
+        self.frame_right = ttk.Frame(self.root)
+        self.frame_right.place(relx=0.25, relwidth=0.75, relheight=1)
+
+        self.title_label = ttk.Label(self.frame_right, text=f"Lucia Installer - Version {self.version}", font=("Helvetica", 16))
+        self.title_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+
+        self.install_path_label = ttk.Label(self.frame_right, text="Install Path:")
+        self.install_path_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+
+        self.install_path_var = tk.StringVar()
+        self.install_path_var.set(self.default_path)
+
+        self.install_path_entry = ttk.Entry(self.frame_right, textvariable=self.install_path_var, width=50)
+        self.install_path_entry.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+
+        self.browse_button = ttk.Button(self.frame_right, text="Browse", command=self.browse_folder)
+        self.browse_button.grid(row=2, column=1, padx=10, pady=5)
+
+        self.precompile_var = tk.BooleanVar()
+        self.precompile_checkbox = ttk.Checkbutton(self.frame_right, text="Compile to .exe", variable=self.precompile_var)
+        self.precompile_checkbox.grid(row=3, column=0, columnspan=3, padx=10, pady=5, sticky="w")
+
+        self.download_libraries_var = tk.BooleanVar()
+        self.download_libraries_checkbox = ttk.Checkbutton(self.frame_right, text="Download Additional Libraries", variable=self.download_libraries_var)
+        self.download_libraries_checkbox.grid(row=4, column=0, columnspan=3, padx=10, pady=5, sticky="w")
+
+        self.add_to_path_var = tk.BooleanVar()
+        self.add_to_path_checkbox = ttk.Checkbutton(self.frame_right, text="Add 'lucia' to PATH", variable=self.add_to_path_var)
+        self.add_to_path_checkbox.grid(row=5, column=0, columnspan=3, padx=10, pady=5, sticky="w")
+
+        self.install_button = ttk.Button(self.frame_right, text="Install", command=self.install)
+        self.install_button.place(relx=0.05, rely=0.6, relwidth=0.2, height=25)
+
+        if self.installed_version:
+            self.show_existing_installation_options()
+
+        self.close_button = ttk.Button(self.root, text="Close", command=self.on_closing)
+        self.close_button.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)
+
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.root.mainloop()
+
+    def get_installed_version(self):
+        try:
+            newest_version = None
+            versions = os.listdir(self.default_path)
+            for version in versions:
+                if version.startswith("lucia-Release"):
+                    version = version.replace("lucia-Release", "")
+                    if not newest_version or version > newest_version:
+                        newest_version = version
+            return newest_version
+        except Exception as e:
+            print(f"Error getting installed version: {e}")
+            return None
+
+    def add_image(self):
+        image_path = "placeholder.png"
+        try:
+            img = Image.open(image_path)
+            img = img.resize((156, 385), Image.LANCZOS)
+            self.img = ImageTk.PhotoImage(img)
+            image_label = ttk.Label(self.root, image=self.img)
+            image_label.place(relheight=1, relwidth=0.25)
+        except Exception as e:
+            print(f"Error loading image: {e}")
+
+    def show_existing_installation_options(self):
+        if self.installed_version and self.version > self.installed_version:
+            upgrade_button = ttk.Button(self.frame_right, text=f"Upgrade to {self.version}", command=self.upgrade)
+            upgrade_button.place(relx=0.0, rely=0.6, relwidth=0.2, height=25)  # Simulating column 0
+            return
+
+        elif self.installed_version == self.version:
+            self.install_button.destroy()
+            self.frame_right.update_idletasks()
+            self.frame_right.update()
+            uninstall_button = ttk.Button(self.frame_right, text="Uninstall", command=self.uninstall)
+            uninstall_button.place(relx=0.0, rely=0.6, relwidth=0.2, height=25)  # Simulating column 1
+
+            modify_button = ttk.Button(self.frame_right, text="Repair or Modify", command=self.modify)
+            modify_button.place(relx=0.25, rely=0.6, relwidth=0.3, height=25)  # Simulating column 2
+            messagebox.showinfo("Info", "Lucia APL is already installed with the latest version.")
+            return
+
+        elif self.installed_version:
+            self.install_button.destroy()
+            self.frame_right.update_idletasks()
+            self.frame_right.update()
+            uninstall_button = ttk.Button(self.frame_right, text="Uninstall", command=self.uninstall)
+            uninstall_button.place(relx=0.0, rely=0.6, relwidth=0.2, height=25)  # Simulating column 1
+
+            modify_button = ttk.Button(self.frame_right, text="Repair or Modify", command=self.modify)
+            modify_button.place(relx=0.25, rely=0.6, relwidth=0.3, height=25)  # Simulating column 2
+            return
+
+    def uninstall(self):
+        try:
+            if self.installed_path.exists():
+                d = tk.Toplevel(master=self.root)
+                d.title("Uninstalling Lucia")
+                d.geometry("300x100")
+                d.resizable(False, False)
+                d.protocol("WM_DELETE_WINDOW", lambda: self.on_closing())
+
+                download_bar = ttk.Progressbar(d, length=200, mode='determinate')
+                download_bar.place(y=20, x=50)
+                d.update_idletasks()
+
+                def uninstall_process():
+                        for i in range(8):
+                            download_bar.step(100 // 9)
+                            d.update_idletasks()
+                            d.after(random.randint(100, 500))
+                        shutil.rmtree(self.installed_path)
+                        download_bar.step(100 // 9)
+                        d.after(random.randint(500, 1000))
+                        d.destroy()
+                        messagebox.showinfo("Success", "Lucia has been uninstalled.")
+                        self.root.quit()
+                threading.Thread(target=uninstall_process, daemon=True).start()
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred during uninstallation: {e}")
+
+    def modify(self):
+        try:
+            if self.installed_path.exists():
+                shutil.rmtree(self.installed_path)
+                self.install()
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred during modification: {e}")
+
+    def upgrade(self):
+        messagebox.showinfo("Upgrade", f"Upgrading Lucia to version {self.version}.")
+
+    def browse_folder(self):
+        folder_selected = filedialog.askdirectory(initialdir=self.default_path)
+        if folder_selected:
+            self.install_path_var.set(folder_selected)
+
+    def install(self):
+        d = tk.Toplevel(master=self.root)
+        d.title("Installing Lucia")
+        d.geometry("300x100")
+        d.resizable(False, False)
+        d.protocol("WM_DELETE_WINDOW", lambda: self.on_closing())
+
+        download_bar = ttk.Progressbar(d, length=200, mode='determinate')
+        download_bar.place(y=20, x=50)
+        d.update_idletasks()
+
+        def install_process():
+            install_path = self.install_path_var.get()
+            os.makedirs(install_path, exist_ok=True)
+            precompile = self.precompile_var.get()
+            download_libraries = self.download_libraries_var.get()
+            add_to_path = self.add_to_path_var.get()
+
+            steps = 5  # Including the unzip step
+            if precompile:
+                steps += 1
+            if download_libraries:
+                steps += 4
+            if add_to_path:
+                steps += 2
+            step = 200 // steps
+            download_bar.step(step)
+
+            if not install_path:
+                messagebox.showerror("Error", "Please select a valid install path.")
+                d.destroy()
+                return
+
+            if not os.path.exists(install_path):
+                messagebox.showerror("Error", "The install path does not exist.")
+                d.destroy()
+                return
+
+            if not os.path.isdir(install_path):
+                messagebox.showerror("Error", "The install path is not a directory.")
+                d.destroy()
+                return
+
+            if not os.access(install_path, os.W_OK):
+                messagebox.showerror("Error", "The install path is not writable.")
+                d.destroy()
+                return
+
+            url = f"https://github.com/SirPigari/lucia/archive/refs/tags/Release{self.version}.zip"
+            output_file = os.path.join(install_path, f"lucia_Release{self.version}.zip")
+
+            try:
+                print(f"Downloading {url}...")
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+
+                with open(output_file, 'wb') as file:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        file.write(chunk)
+
+                print(f"Downloaded successfully to {output_file}")
+                download_bar.step(step)
+                d.update_idletasks()
+            except requests.exceptions.RequestException as e:
+                messagebox.showerror("Error", f"Error downloading the release: {e}")
+                d.destroy()
+                return
+
+            try:
+                with zipfile.ZipFile(output_file, 'r') as zip_ref:
+                    zip_ref.extractall(install_path)
+                print("Extraction completed.")
+                download_bar.step(step)
+                d.update_idletasks()
+            except zipfile.BadZipFile as e:
+                messagebox.showerror("Error", f"Error extracting the release: {e}")
+                d.destroy()
+                return
+
+            try:
+                os.remove(output_file)
+                print("Removed zip file.")
+                download_bar.step(step)
+                d.update_idletasks()
+            except Exception as e:
+                print(f"Error removing zip file: {e}")
+
+
+            try:
+                with open(os.path.join(install_path, f"lucia-Release{self.version}\\env", "config.json"), 'w') as file:
+                    config = {
+                      "debug": False,
+                      "use_lucia_traceback": True,
+                      "warnings": True,
+                      "print_comments": False,
+                      "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
+                      "home_dir": os.path.join(install_path, f"lucia-Release{self.version}\\env"),
+                      "recursion_limit": 9999,
+                      "version": self.version,
+                      "color_scheme": {
+                        "exception": "#F44350",
+                        "warning": "#FFC107",
+                        "debug": "#434343",
+                        "comment": "#757575",
+                        "input_arrows": "#136163",
+                        "input_text": "#BCBEC4",
+                        "output_text": "#BCBEC4",
+                        "info": "#9209B3"
+                      }
+                    }
+                    json.dump(config, file, indent=4)
+                    print("Added config file.")
+                    download_bar.step(step)
+                    d.update_idletasks()
+            except Exception as e:
+                messagebox.showerror("Error", f"Error creating config file: {e}")
+                d.destroy()
+                return
+
+            if precompile:
+                print("Compiling Lucia...")
+                lucia_path = os.path.join(install_path, f"lucia-Release{self.version}")
+                lucia_path_py = os.path.join(lucia_path, "lucia.py")
+                lucia_path_exe = os.path.join(lucia_path, "lucia.exe")
+
+                if not os.path.exists(lucia_path_py):
+                    messagebox.showerror("Error", "Lucia source file not found for compilation.")
+                    d.destroy()
+                    return
+
+                try:
+                    subprocess.run([
+                        sys.executable, "-m", "PyInstaller",
+                        "--onefile", "--noconsole",
+                        "--add-data", f"{lucia_path}{os.pathsep}.",
+                        "--distpath", lucia_path,  # Set output directory to lucia_path
+                        "--workpath", os.path.join(lucia_path, "build"),  # Avoid cluttering main dir
+                        "--specpath", os.path.join(lucia_path, "build"),  # Keep spec file in build dir
+                        lucia_path_py
+                    ], check=True)
+
+                    print(f"Compilation successful. Executable saved to {lucia_path_exe}")
+                    download_bar.step(step)
+                    d.update_idletasks()
+                except subprocess.CalledProcessError as e:
+                    messagebox.showerror("Error", f"Compilation failed: {e}")
+                    d.destroy()
+                    return
+            if download_libraries:
+                url = f"https://github.com/SirPigari/lucia/releases/download/Release{self.version}/Lib.zip"
+                path = os.path.join(install_path, f"lucia-Release{self.version}", "env\\Lib")
+                print(f"Downloading {url}...")
+
+                response = requests.get(url)
+                response.raise_for_status()
+                download_bar.step(step)
+                d.update_idletasks()
+
+                with zipfile.ZipFile(BytesIO(response.content)) as zip_ref:
+                    temp_dir = os.path.join(install_path, "temp_lib")
+                    os.makedirs(temp_dir, exist_ok=True)
+
+                    zip_ref.extractall(temp_dir)
+
+                    extracted_files = os.listdir(temp_dir)
+                    download_bar.step(step)
+                    d.update_idletasks()
+
+                    if extracted_files and extracted_files[0] == 'Lib' and os.path.isdir(os.path.join(temp_dir, 'Lib')):
+                        lib_dir = os.path.join(temp_dir, 'Lib')
+                        for root, dirs, files in os.walk(lib_dir):
+                            for file in files:
+                                temp_file = os.path.join(root, file)
+                                target_file = os.path.join(path, os.path.relpath(temp_file, lib_dir))
+
+                                os.makedirs(os.path.dirname(target_file), exist_ok=True)
+
+                                if os.path.exists(target_file):
+                                    os.remove(target_file)
+
+                                shutil.move(temp_file, target_file)
+                    else:
+                        for root, dirs, files in os.walk(temp_dir):
+                            for file in files:
+                                temp_file = os.path.join(root, file)
+                                target_file = os.path.join(path, os.path.relpath(temp_file, temp_dir))
+
+                                os.makedirs(os.path.dirname(target_file), exist_ok=True)
+
+                                if os.path.exists(target_file):
+                                    os.remove(target_file)
+
+                                shutil.move(temp_file, target_file)
+                    download_bar.step(step)
+                    d.update_idletasks()
+                    shutil.rmtree(temp_dir)
+                    download_bar.step(step)
+                    d.update_idletasks()
+
+                download_bar.step(step)
+                d.update_idletasks()
+                print(f"Downloaded libraries successfully to {path}")
+            if add_to_path:
+                print("Adding 'lucia' to PATH...")
+                lucia_path = os.path.join(install_path, f"lucia-Release{self.version}")
+                lucia_path_ = os.path.join(lucia_path, "lucia.exe")
+                if not os.path.exists(lucia_path_):
+                    lucia_path_ = os.path.join(lucia_path, "lucia.py")
+
+                if not os.path.exists(lucia_path):
+                    messagebox.showerror("Error", "Lucia installation not found.")
+                    d.destroy()
+                    return
+                try:
+                    pythoncom.CoInitialize()
+                    current_path = os.environ.get("PATH", "")
+
+                    desktop = winshell.desktop()
+                    shortcut_path = os.path.join(desktop, f"Lucia-{self.version}.lnk")
+
+                    shell = Dispatch('WScript.Shell')
+                    shortcut = shell.CreateShortcut(shortcut_path)
+                    shortcut.TargetPath = lucia_path_
+                    shortcut.WorkingDirectory = os.path.dirname(lucia_path_)
+                    shortcut.Save()
+
+                    print(f"Shortcut 'Lucia-{self.version}' created successfully on the desktop.")
+
+                    if lucia_path not in current_path:
+                        new_path = f"{lucia_path};{current_path}"
+                        print(new_path)
+                        subprocess.run(f'setx PATH "{new_path}"', shell=True, check=True)
+                        print(os.environ.get("PATH"))
+                        print(f"Added {lucia_path} to PATH.")
+                        messagebox.showinfo("Success", f"{lucia_path} has been added to PATH.")
+                    else:
+                        messagebox.showinfo("Info", f"{lucia_path} is already in PATH.")
+                except Exception as e:
+                    print(f"Error modifying PATH: {e}")
+                    messagebox.showerror("Error", f"Failed to add {lucia_path} to PATH.\n{str(e)}")
+                    download_bar.step(step)
+                    d.update_idletasks()
+                print("Lucia added to PATH successfully.")
+                download_bar.step(step)
+                d.update_idletasks()
+
+            d.destroy()
+            print("Installation completed.")
+            messagebox.showinfo("Success", f"Lucia APL {self.version} has been installed at {install_path}.")
+            self.root.quit()
+
+        threading.Thread(target=install_process, daemon=True).start()
+
+    def on_closing(self):
+        if messagebox.askyesno(f"Lucia Installer - {self.version}", "Are you sure you want to quit?", icon='warning'):
+            self.root.quit()
 
 if __name__ == "__main__":
+    print(os.environ.get("PATH", ""))
+    os.chdir(os.path.dirname(__file__))
     if not is_admin():
         run_as_admin()
-
-    lucia_dir = copy_files_to_appdata()
-
-    add_to_path(lucia_dir)
+        sys.exit(0)
+    else:
+        os.chdir(os.path.dirname(__file__))
+        Installer(version)

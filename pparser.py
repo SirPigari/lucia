@@ -71,7 +71,7 @@ class Parser:
             self.next()
             return {"type": "OPERATION", "left": {"type": "BOOLEAN", "value": "null", "literal_value": None}, "operator": "!", "right": self.parse_expression()}
 
-        if self.token[0] in ('NUMBER', 'STRING', 'BOOLEAN') and self.get_next()[0] == 'OPERATOR':
+        if self.token[0] in ('NUMBER', 'STRING', 'BOOLEAN') and self.get_next() and self.get_next()[0] == 'OPERATOR':
             return self.parse_operation()
 
         # Check for function declaration (fun <name> ...)
