@@ -1,12 +1,13 @@
-.venv
+.venv/
 test.lucia
 installer.py
 build
 dist
 installer.spec
+lucia_installer.spec
 lucia.spec
 env/config.json
 Lib/
-.idea
+.idea/
 .gitignore
 __pycache__/
