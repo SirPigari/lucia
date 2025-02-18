@@ -2,11 +2,8 @@
 test.lucia
 build
 dist
-installer.spec
-lucia_installer.spec
-lucia.spec
+*.spec
 env/config.json
 Lib/
 .idea/
-.gitignore
 __pycache__/
