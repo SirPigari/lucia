@@ -29,18 +29,56 @@ import pythoncom
 from win32com.client import Dispatch
 import time
 import traceback
+import urllib.request
 
 if getattr(sys, 'frozen', False):
     # If running as a bundled app, use _MEIPASS to get the resource path
     base_path = sys._MEIPASS
 else:
     # If running normally (i.e. during development)
-    base_path = os.path.join(os.path.dirname(__file__), "build\\assets")
+    base_path = os.path.join(os.path.dirname(__file__), "env\\assets")
 
 os.chdir(base_path)
 
 
 version = "1.0"
+
+
+def is_python_installed():
+    try:
+        subprocess.run(["python", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def install_python():
+    python_installer_url = "https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe"
+    installer_path = "python_installer.exe"
+
+    print("Downloading Python 3.13.2...")
+    urllib.request.urlretrieve(python_installer_url, installer_path)
+
+    print("Installing Python 3.13.2...")
+    subprocess.run([installer_path, "/quiet", "InstallAllUsers=1", "PrependPath=1"], check=True)
+    os.remove(installer_path)
+
+    print("Python 3.13.2 installed successfully. Please restart your terminal.")
+    sys.exit(0)
+
+
+def is_pyinstaller_installed():
+    try:
+        subprocess.run(["pyinstaller", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def install_pyinstaller():
+    print("Installing pyinstaller...")
+    subprocess.run(["python", "-m", "pip", "install", "pyinstaller"], check=True)
+    print("PyInstaller installed successfully.")
 
 def is_admin():
     """Check if the script is run as administrator."""
@@ -246,6 +284,8 @@ class Installer:
             os.makedirs(log_dir, exist_ok=True)
             log_file = os.path.join(log_dir, f"{timestamp}.log")
 
+            assets_dir = base_path
+
             # Function to write logs
             def write_log(message):
                 with open(log_file, 'a') as log:
@@ -303,6 +343,7 @@ class Installer:
                 print(f"Downloaded successfully to {output_file}")
                 download_bar.step(step)
                 d.update_idletasks()
+                assets_dir = os.path.join(install_path, f"lucia-Release{self.version}", "env\\assets")
             except requests.exceptions.RequestException as e:
                 messagebox.showerror("Error", f"Error downloading the release: {e}")
                 d.destroy()
@@ -383,22 +424,24 @@ class Installer:
                 os.makedirs(os.path.join(lucia_path, "env\\build"), exist_ok=True)
 
                 try:
-                    if getattr(sys, 'frozen', False):
-                        python_exe = sys._base_executable
-                    else:
-                        python_exe = sys.executable
+                    if not is_python_installed():
+                        messagebox.showerror("Error", "Python is not installed.")
+                        d.destroy()
+                        return
+                    if not is_pyinstaller_installed():
+                        messagebox.showerror("Error", "PyInstaller is not installed.")
+                        d.destroy()
+                        return
 
-                    command = [
+                    subprocess.run([
                         "pyinstaller",
-                        "--onefile", f"--icon={os.path.join(base_path, 'installer.ico')}",
+                        "--onefile", f"--icon={os.path.join(assets_dir, 'installer.ico')}",
                         "--add-data", f"{lucia_path}{os.pathsep}.",
-                        "--distpath", lucia_path,
-                        "--workpath", os.path.join(lucia_path, "env\\build"),
-                        "--specpath", os.path.join(lucia_path, "env\\build"),
+                        "--distpath", lucia_path,  # Set output directory to lucia_path
+                        "--workpath", os.path.join(lucia_path, "env\\build"),  # Avoid cluttering main dir
+                        "--specpath", os.path.join(lucia_path, "env\\build"),  # Keep spec file in build dir
                         lucia_path_py
-                    ]
-
-                    ctypes.windll.shell32.ShellExecuteW(None, "runas", python_exe, ' '.join(command), None, 1)
+                    ], check=True)
 
                     print(f"Compilation successful. Executable saved to {lucia_path_exe}")
                     download_bar.step(step)
@@ -528,11 +571,22 @@ class Installer:
             self.root.quit()
 
 if __name__ == "__main__":
+    if not is_python_installed():
+        install_python()
+    else:
+        print("Python is already installed.")
+
+    if not is_pyinstaller_installed():
+        install_pyinstaller()
+    else:
+        print("PyInstaller is already installed.")
     print(os.environ.get("PATH", ""))
     os.chdir(os.path.dirname(__file__))
-    if not is_admin():
-        run_as_admin()
-        sys.exit(0)
-    else:
-        os.chdir(os.path.dirname(__file__))
-        Installer(version)
+
+    Installer(version)
+    # if not is_admin():
+    #     run_as_admin()
+    #     sys.exit(0)
+    # else:
+    #     os.chdir(os.path.dirname(__file__))
+    #     Installer(version)
