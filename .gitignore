@@ -1,6 +1,5 @@
 .venv/
 test.lucia
-installer.py
 build
 dist
 installer.spec
