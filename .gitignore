@@ -7,3 +7,5 @@ env/config.json
 Lib/
 .idea/
 __pycache__/
+*.pyc
+.gitignore
