@@ -288,7 +288,7 @@ class Installer:
 
             # Function to write logs
             def write_log(message):
-                with open(log_file, 'a') as log:
+                with open(log_file, 'a', encoding='utf-8-sig') as log:
                     log.write(message + "\n")
 
             def log_exception():

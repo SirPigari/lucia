@@ -57,7 +57,13 @@ class Interpreter:
         self.return_value = None
 
     def check_type(self, type_, expected=None, return_value=None):
-        valid_types = {"int", "str", "bool", "void", "float", "any"}
+        valid_types = {"int", "str", "bool", "void", "float", "any", "null"}
+
+        if type_ == "void":
+            type_ = "null"
+
+        if expected == "void":
+            expected = "null"
 
 
         if isinstance(type_, b_classes.Boolean):

@@ -117,24 +117,24 @@ else:
                 hex_color = color_map.get('exception', '#F44350')
                 ansi_color = hex_to_ansi(hex_color)
                 if str(e) == "maximum recursion depth exceeded":
-                    print(f"{ansi_color}-> File '{os.path.abspath(__file__)}', Got traceback:\n{exception_type}: Maximum recursion depth ({config.get('recursion_limit', 9999)}) exceeded\033[0m")
+                    print(f"{ansi_color}-> File '<stdin>', Got traceback:\n{exception_type}: Maximum recursion depth ({config.get('recursion_limit', 9999)}) exceeded\033[0m")
                 else:
-                    print(f"{ansi_color}-> File '{os.path.abspath(__file__)}', Got traceback:\n{exception_type}: {str(e).title()}\033[0m")
+                    print(f"{ansi_color}-> File '<stdin>', Got traceback:\n{exception_type}: {str(e).title()}\033[0m")
             except Warning as w:
                 exception_type = type(w).__name__
                 hex_color = color_map.get('warning', '#FFC107')
                 ansi_color = hex_to_ansi(hex_color)
-                print(f"{ansi_color}-> File '{os.path.abspath(__file__)}', Got traceback:\n{exception_type}: {w}\033[0m")
+                print(f"{ansi_color}-> File '<stdin>', Got traceback:\n{exception_type}: {w}\033[0m")
             except RuntimeError as e:
                 exception_type = type(e).__name__
                 hex_color = color_map.get('exception', '#F44350')
                 ansi_color = hex_to_ansi(hex_color)
-                print(f"{ansi_color}-> File '{os.path.abspath(__file__)}', Got traceback:\n{exception_type}: {e}\033[0m")
+                print(f"{ansi_color}-> File '<stdin>', Got traceback:\n{exception_type}: {e}\033[0m")
             except Exception as e:
                 exception_type = type(e).__name__
                 hex_color = color_map.get('exception', '#F44350')
                 ansi_color = hex_to_ansi(hex_color)
-                print(f"{ansi_color}-> File '{os.path.abspath(__file__)}', Got traceback:\n{exception_type}: {e}\033[0m")
+                print(f"{ansi_color}-> File '<stdin>', Got traceback:\n{exception_type}: {e}\033[0m")
             except SystemExit as e:
                 break
         else:
