@@ -254,19 +254,23 @@ class Interpreter:
 
                 pattern_values = [self.evaluate(p) for p in pattern]
 
+                if len(pattern_values) == 1:
+                    return range(int(pattern_values[0]), int(end)+1)
+
                 differences = [pattern_values[i + 1] - pattern_values[i] for i in range(len(pattern_values) - 1)]
 
-                if all(d == differences[0] for d in differences):
-                    step = differences[0]
-                    start = pattern_values[0]
-                    result = []
-                    current = start
+                if differences:
+                    if all(d == differences[0] for d in differences):
+                        step = differences[0]
+                        start = pattern_values[0]
+                        result = []
+                        current = start
 
-                    while current <= end:
-                        result.append(current)
-                        current += step
+                        while current <= end:
+                            result.append(current)
+                            current += step
 
-                    return result
+                        return result
 
                 elif len(pattern_values) >= 2:
                     fibonacci_like = True

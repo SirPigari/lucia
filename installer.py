@@ -583,10 +583,12 @@ if __name__ == "__main__":
     print(os.environ.get("PATH", ""))
     os.chdir(os.path.dirname(__file__))
 
-    Installer(version)
-    # if not is_admin():
-    #     run_as_admin()
-    #     sys.exit(0)
-    # else:
-    #     os.chdir(os.path.dirname(__file__))
-    #     Installer(version)
+    if (len(sys.argv) > 1) and (sys.argv[1] == "--no-admin"):
+        Installer(version)
+        sys.exit(0)
+    if not is_admin():
+        run_as_admin()
+        sys.exit(0)
+    else:
+        os.chdir(os.path.dirname(__file__))
+        Installer(version)
