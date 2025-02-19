@@ -41,44 +41,82 @@ else:
 os.chdir(base_path)
 
 
+def get_global_python_path():
+    try:
+        result = subprocess.run(['where', 'python'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        python_path = result.stdout.strip()
+        if not python_path:
+            return "Python not found in global path."
+        return python_path.split("\n")[0]
+    except Exception as e:
+        return f"Error: {e}"
+
+def get_python_version():
+    try:
+        result = subprocess.run(['python', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return result.stdout.strip() or result.stderr.strip()
+    except Exception as e:
+        return f"Error getting Python version: {e}"
+
+PYTHON_PATH = get_global_python_path()
+
+PYTHON_VERSION = get_python_version()
+
+
+print(f"{PYTHON_PATH}")
+print(f"{PYTHON_VERSION}")
+
+
 version = "1.0"
 
 
 def is_python_installed():
     try:
-        subprocess.run(["python", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return True
-    except FileNotFoundError:
+        if PYTHON_PATH and PYTHON_VERSION.startswith("Python 3.13"):
+            return True
+        return False
+    except Exception:
         return False
 
 
+def download_progress(count, block_size, total_size):
+    downloaded = count * block_size
+    percent = (downloaded / total_size) * 100
+    print(f"\nDownloaded {downloaded} of {total_size} bytes ({percent:.1f}%)\r")
 def install_python():
-    python_installer_url = "https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe"
-    installer_path = "python_installer.exe"
+    try:
+        python_installer_url = "https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe"
+        installer_path = "python_installer.exe"
 
-    print("Downloading Python 3.13.2...")
-    urllib.request.urlretrieve(python_installer_url, installer_path)
+        print("Downloading Python 3.13.2...")
+        # Pass the download_progress function to show progress
+        urllib.request.urlretrieve(python_installer_url, installer_path, reporthook=download_progress)
 
-    print("Installing Python 3.13.2...")
-    subprocess.run([installer_path, "/quiet", "InstallAllUsers=1", "PrependPath=1"], check=True)
-    os.remove(installer_path)
+        print("\nInstalling Python 3.13.2...")
+        subprocess.run([installer_path, "/quiet", "InstallAllUsers=1", "PrependPath=1"], check=True)
+        os.remove(installer_path)
 
-    print("Python 3.13.2 installed successfully. Please restart your terminal.")
-    sys.exit(0)
+        print("Python 3.13.2 installed successfully. Please restart your terminal.")
+    except Exception as e:
+        print(f"Error installing Python 3.13.2: {e}")
 
 
 def is_pyinstaller_installed():
     try:
         subprocess.run(["pyinstaller", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return True
-    except FileNotFoundError:
+    except Exception:
         return False
 
 
 def install_pyinstaller():
-    print("Installing pyinstaller...")
-    subprocess.run(["python", "-m", "pip", "install", "pyinstaller"], check=True)
-    print("PyInstaller installed successfully.")
+    try:
+        print("Installing pyinstaller...")
+        subprocess.run([PYTHON_PATH, "-m", "pip", "install", "pyinstaller"], check=True)
+        print("PyInstaller installed successfully.")
+    except Exception as e:
+        print(f"Error installing PyInstaller: {e}")
+        sys.exit(1)
 
 def is_admin():
     """Check if the script is run as administrator."""
@@ -233,7 +271,12 @@ class Installer:
                             download_bar.step(100 // 9)
                             d.update_idletasks()
                             d.after(random.randint(100, 500))
-                        shutil.rmtree(self.installed_path)
+                        try:
+                            shutil.rmtree(self.installed_path)
+                        except Exception as e:
+                            messagebox.showerror("Error", f"An error occurred during uninstallation: {e}")
+                            d.destroy()
+                            return
                         download_bar.step(100 // 9)
                         d.after(random.randint(500, 1000))
                         d.destroy()
@@ -293,12 +336,19 @@ class Installer:
 
             def log_exception():
                 exc_type, exc_value, exc_tb = sys.exc_info()
+
                 exception_details = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+
+                error_message = f"Exception Type: {exc_type.__name__}\n" \
+                                f"Exception Message: {str(exc_value)}"
+
                 write_log(f"ERROR: {exception_details}")
-                messagebox.showerror("Error", f"An error occurred. Check the log file at: {log_file}")
+                write_log(error_message)
+
+                messagebox.showerror("Error", f"An error occurred: {str(exc_value)}. Check the log file at: {log_file}")
                 d.destroy()
 
-            steps = 5  # Including the unzip step
+            steps = 5
             if precompile:
                 steps += 1
             if download_libraries:
@@ -375,14 +425,14 @@ class Installer:
                 print(f"Error removing zip file: {e}")
 
             try:
-                with open(os.path.join(install_path, f"lucia-Release{self.version}\\env", "config.json"), 'w') as file:
+                with open(os.path.join(install_path, f"lucia-Release{self.version}\\env\\config.json"), 'w') as file:
                     config = {
                       "debug": False,
                       "use_lucia_traceback": True,
                       "warnings": True,
                       "print_comments": False,
                       "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
-                      "home_dir": os.path.join(install_path, f"lucia-Release{self.version}\\env"),
+                      "home_dir": os.path.abspath(os.path.join(install_path, f"lucia-Release{self.version}\\env")),
                       "recursion_limit": 9999,
                       "version": self.version,
                       "color_scheme": {
@@ -571,6 +621,8 @@ class Installer:
             self.root.quit()
 
 if __name__ == "__main__":
+    install_python()
+    install_pyinstaller()
     if not is_python_installed():
         install_python()
     else:

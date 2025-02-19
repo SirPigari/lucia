@@ -1,5 +1,5 @@
 .venv/
-test.lucia
+tests/test.lucia
 build
 dist
 *.spec
@@ -8,3 +8,4 @@ Lib/
 .idea/
 __pycache__/
 *.pyc
+tests/

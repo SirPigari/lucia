@@ -1,3 +1,4 @@
+import sys
 import lexer
 import pparser
 import interpreter
@@ -21,7 +22,7 @@ def check_config():
     if not isinstance(config, dict):
         raise TypeError("Config file must be a JSON object.")
     if not isinstance(color_map, dict):
-        raise TypeError("Color scheme must be a JSON object.")
+        raise TypeError("Color map must be a JSON object.")
     needs = ["debug", "use_lucia_traceback", "print_comments", "recursion_limit", "home_dir"]
     for need in needs:
         if not config.get(need, PLACEHOLDER) is not PLACEHOLDER:
@@ -50,7 +51,7 @@ def input_exec():
     global config, interpreter_, pparser, lexer
     ansi_color = hex_to_ansi(color_map.get('input_arrows', '#136163'))
     ansi_color2 = hex_to_ansi(color_map.get('input_text', '#BCBEC4'))
-    code = input(f"\033[0m{ansi_color}>>>\033[0m {ansi_color2}")
+    code = input(f"\033[0m{ansi_color}>>>\033[0m{ansi_color2} ")
     print(f"\033[0m{hex_to_ansi(color_map.get('output_text', '#BCBEC4'))}", end="")
     if code == "exit":
         print("Use 'exit()' to exit.")

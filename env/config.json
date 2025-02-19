@@ -1,5 +1,5 @@
 {
-  "debug": false,
+  "debug": true,
   "supports_color": true,
   "use_lucia_traceback": false,
   "warnings": true,

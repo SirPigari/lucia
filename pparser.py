@@ -97,6 +97,9 @@ class Parser:
         if self.token == ('IDENTIFIER', 'import'):
             return self.parse_import_statement()
 
+        if self.token == ('IDENTIFIER', 'throw'):
+            return self.parse_throw_statement()
+
         if self.token[0] == 'IDENTIFIER' and self.token[1] == 'return':
             return self.parse_return_statement()
 
@@ -148,14 +151,23 @@ class Parser:
         module_name = self.token[1]
         self.next()
         as_name = module_name
-        if self.token == ('IDENTIFIER', 'as'):
-            self.next()
-            as_name = self.token[1]
-            self.next()
+        from_ = None
+        while self.token and self.token[0] == 'IDENTIFIER':
+            if self.token == ('IDENTIFIER', 'as'):
+                self.next()
+                as_name = self.token[1]
+                self.next()
+            elif self.token == ('IDENTIFIER', 'from'):
+                self.next()
+                from_ = self.parse_expression()
+                self.next()
+            else:
+                break
         return {
             "type": "IMPORT",
             "module_name": module_name,
-            "as": as_name
+            "as": as_name,
+            "from": from_
         }
 
     def parse_variable_declaration(self):
@@ -164,8 +176,10 @@ class Parser:
         self.next()
         variable_type = self.token[1]
         self.next()
-        self.next()
-        value = self.parse_expression()
+        value = {"type": "BOOLEAN", "value": "null", "literal_value": None}
+        if self.token == ('OPERATOR', '='):
+            self.next()
+            value = self.parse_expression()
         return {
             "type": "VARIABLEDECLARATION",
             "name": name,
@@ -200,10 +214,10 @@ class Parser:
         self.check_for('OPERATOR', '->')
         self.next()
         return_type = self.parse_return_type()
-        self.check_for('SEPARATOR', '{')
+        self.check_for('SEPARATOR', ':')
         self.next()
         body = self.parse_body()
-        self.check_for('SEPARATOR', '}')
+        self.check_for('IDENTIFIER', 'end')
         self.next()
 
         return {
@@ -244,7 +258,7 @@ class Parser:
 
     def parse_body(self):
         body = []
-        while self.token and not (self.token[0] == 'SEPARATOR' and self.token[1] == '}'):
+        while self.token and not (self.token == ('IDENTIFIER', 'end')):
             body.append(self.parse_expression())
         return body
 
@@ -355,10 +369,10 @@ class Parser:
         condition = self.parse_expression()
         self.check_for('SEPARATOR', ')')
         self.next()
-        self.check_for('SEPARATOR', '{')
+        self.check_for('SEPARATOR', ':')
         self.next()
         body = self.parse_body()
-        self.check_for('SEPARATOR', '}')
+        self.check_for('IDENTIFIER', 'end')
         self.next()
         else_body = []
         if self.token == ('IDENTIFIER', 'else'):
@@ -366,10 +380,10 @@ class Parser:
             if self.token == ('IDENTIFIER', 'if'):
                 else_body = [self.parse_if_statement()]
             else:
-                self.check_for('SEPARATOR', '{')
+                self.check_for('SEPARATOR', ':')
                 self.next()
                 else_body = self.parse_body()
-                self.check_for('SEPARATOR', '}')
+                self.check_for('IDENTIFIER', 'end')
                 self.next()
         return {
             "type": "IF",
@@ -390,10 +404,10 @@ class Parser:
         iterable = self.parse_expression()
         self.check_for('SEPARATOR', ')')
         self.next()
-        self.check_for('SEPARATOR', '{')
+        self.check_for('SEPARATOR', ':')
         self.next()
         body = self.parse_body()
-        self.check_for('SEPARATOR', '}')
+        self.check_for('IDENTIFIER', 'end')
         self.next()
         return {
             "type": "FOR",
@@ -410,13 +424,29 @@ class Parser:
         condition = self.parse_expression()
         self.check_for('SEPARATOR', ')')
         self.next()
-        self.check_for('SEPARATOR', '{')
+        self.check_for('SEPARATOR', ':')
         self.next()
         body = self.parse_body()
-        self.check_for('SEPARATOR', '}')
+        self.check_for('IDENTIFIER', 'end')
         self.next()
         return {
             "type": "WHILE",
             "condition": condition,
             "body": body
+        }
+
+    def parse_throw_statement(self):
+        self.check_for('IDENTIFIER', 'throw')
+        value = {'type': 'BOOLEAN', 'value': 'null', 'literal_value': None}
+        from_ = {'type': 'VARIABLE', 'name': 'LuciaException'}
+        self.next()
+        if self.token:
+            value = self.parse_expression()
+            if self.token == ('IDENTIFIER', 'from'):
+                self.next()
+                from_ = self.parse_expression()
+        return {
+            "type": "THROW",
+            "value": value,
+            "from": from_,
         }

@@ -5,3 +5,6 @@ class ListPatterRecognitionWarning(Warning):
 
     def __str__(self):
         return self.args[0]
+
+class LuciaException(Exception):
+    pass

@@ -10,6 +10,7 @@ import pparser
 import re
 import math
 import random
+import builtins
 
 def find_closest_match(word_list, target_word):
     if not word_list:
@@ -34,7 +35,10 @@ def hex_to_ansi(hex_color):
 
 class Interpreter:
     def __init__(self, config):
-        self.variables = {}
+        self.variables = {
+            "LuciaException": b_exceptions.LuciaException,
+            "ListPatternRecognitionWarning": b_exceptions.ListPatterRecognitionWarning
+        }
         self.config = config
         self.functions = {
             "print": {"is_builtin": True, "function": b_functions.print},
@@ -148,6 +152,8 @@ class Interpreter:
                 self.evaluate(statement)
             elif statement["type"] == "FOR":
                 self.evaluate(statement)
+            elif statement["type"] == "THROW":
+                self.evaluate(statement)
             elif statement["type"] == "COMMENT":
                 color = self.config.get("color_scheme", {}).get("comment", "#757575")
                 ansi_color = hex_to_ansi(color)
@@ -160,9 +166,7 @@ class Interpreter:
                 self.return_value = self.evaluate(statement["value"])
                 return "RETURN"
             elif statement["type"] == "IMPORT":
-                module_name = statement["module_name"]
-                as_name = statement["as"]
-                self.import_module(module_name, as_name)
+                self.evaluate(statement)
             elif statement["type"] == "ASSIGNMENT":
                 self.variables[statement["name"]] = self.evaluate(statement["value"])
             elif statement["type"] == "VARIABLE":
@@ -190,6 +194,14 @@ class Interpreter:
             self.variables[statement["name"]] = self.evaluate(statement["value"])
         elif statement["type"] == "NUMBER":
             return float(statement["value"])
+        elif statement["type"] == "THROW":
+            if statement["from"]["name"] in self.variables:
+                exception = self.variables.get(statement["from"]["name"], statement["from"])
+            elif hasattr(builtins, statement["from"]["name"]):
+                exception = getattr(builtins, statement["from"]["name"])
+            else:
+                raise NameError(f"Name '{statement['from']['name']}' is not defined.")
+            raise exception(self.evaluate(statement["value"]))
         elif statement["type"] == "IF":
             condition = self.evaluate(statement["condition"])
             if str(condition) == "true":
@@ -203,7 +215,8 @@ class Interpreter:
         elif statement["type"] == "IMPORT":
             module_name = statement["module_name"]
             as_name = statement["as"]
-            self.import_module(module_name, as_name)
+            from_ = None if (statement["from"] is None) else self.evaluate(statement["from"])
+            self.import_module(module_name, as_name, from_)
         elif statement["type"] == "COMMENT":
             color = self.config.get("color_scheme", {}).get("comment", "#757575")
             ansi_color = hex_to_ansi(color)
@@ -359,10 +372,13 @@ class Interpreter:
         else:
             raise SyntaxError(f"Unexpected statement: {statement}")
 
-    def import_module(self, module_name, as_name=None):
+    def import_module(self, module_name, as_name=None, from_=None):
         original_module_name = as_name if as_name else module_name
-        module_path = os.path.join(self.config["home_dir"], 'Lib', module_name)
-        lib_dir = os.path.join(self.config["home_dir"], 'Lib')
+        from_ = os.path.abspath(from_ or os.path.join(self.config.get("home_dir"), "Lib"))
+        if not os.path.exists(from_):
+            raise ImportError(f"Path '{from_}' does not exist.")
+        module_path = os.path.join(from_, module_name)
+        lib_dir = os.path.join(from_)
         module_files = os.listdir(module_path)
 
         if os.path.isdir(module_path):
@@ -483,8 +499,6 @@ class Interpreter:
                 raise NameError(f"Function '{object_name}.{function_name}' is not defined. Did you mean: '{object_name}.{closest_match}'?")
             raise NameError(f"Function '{function_name}' is not defined.")
         if functions[function_name]["is_builtin"]:
-            print(functions[function_name]["function"])
-            print(type(functions[function_name]["function"]))
             return functions[function_name]["function"](*pos_args, **named_args)
 
         body = functions[function_name]["body"]
