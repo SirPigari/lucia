@@ -60,6 +60,11 @@ class Interpreter:
         self.objects = {}
         self.return_value = None
 
+    def debug_log(self, *args):
+        if self.config.get('debug', False):
+            if self.config.get('debug_mode', 'normal') == 'normal' or self.config.get('debug_mode', 'normal') == 'full':
+                print(f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'))}{''.join(map(str, args))}\033[0m")
+
     def check_type(self, type_, expected=None, return_value=None):
         valid_types = {"int", "str", "bool", "void", "float", "any", "null"}
 
@@ -68,7 +73,6 @@ class Interpreter:
 
         if expected == "void":
             expected = "null"
-
 
         if isinstance(type_, b_classes.Boolean):
             type_ = "bool"
@@ -131,66 +135,17 @@ class Interpreter:
     def interpret(self, statements):
         for statement in statements:
             statement: dict = dict(statement)
-            if statement["type"] == "FUNCTIONDECLARATION":
-                statement["is_builtin"] = False
-                self.functions[statement["name"]] = statement
-            elif statement["type"] == "VARIABLEDECLARATION":
-                self.variables[statement["name"]] = self.evaluate(statement["value"])
-            elif statement["type"] == "OPERATION":
-                self.evaluate(statement)
-            elif statement["type"] == "IF":
-                condition = self.evaluate(statement["condition"])
-                if str(condition) == "true":
-                    self.interpret(statement["body"])
-                elif statement.get("else_body"):
-                    self.interpret(statement["else_body"])
-            elif statement["type"] == "CALL":
-                self.evaluate(statement)
-            elif statement["type"] == "ITERABLE":
-                self.evaluate(statement)
-            elif statement["type"] == "WHILE":
-                self.evaluate(statement)
-            elif statement["type"] == "FOR":
-                self.evaluate(statement)
-            elif statement["type"] == "THROW":
-                self.evaluate(statement)
-            elif statement["type"] == "COMMENT":
-                color = self.config.get("color_scheme", {}).get("comment", "#757575")
-                ansi_color = hex_to_ansi(color)
-                print(f"{ansi_color}<{statement["value"]}>\033[0m")
-            elif statement["type"] == "PROPERTY":
-                self.evaluate(statement)
-            elif statement["type"] == "BOOLEAN":
-                return b_classes.Boolean(statement["value"], statement["literal_value"])
-            elif statement["type"] == "RETURN":
-                self.return_value = self.evaluate(statement["value"])
-                return "RETURN"
-            elif statement["type"] == "IMPORT":
-                self.evaluate(statement)
-            elif statement["type"] == "ASSIGNMENT":
-                self.variables[statement["name"]] = self.evaluate(statement["value"])
-            elif statement["type"] == "VARIABLE":
-                if statement["name"] == "null":
-                    return None
-                if statement["name"] not in self.variables:
-                    if statement["name"] in self.functions:
-                        raise NameError(
-                            f"Name '{statement['name']}' is not defined. Did you mean: '{statement['name']}()'?")
-                    if statement["name"] in self.objects:
-                        return f"<Object at {id(self.objects[statement['name']])}>"
-                    closest_match = find_closest_match(self.variables.keys(), statement["name"])
-                    if closest_match:
-                        raise NameError(f"Name '{statement['name']}' is not defined. Did you mean: '{closest_match}'?")
-                    raise NameError(f"Name '{statement['name']}' is not defined.")
-                return self.variables[statement["name"]]
-            else:
-                raise SyntaxError(f"Unexpected statement: {statement}")
+            self.evaluate(statement)
 
     def evaluate(self, statement):
         if statement["type"] == "FUNCTIONDECLARATION":
+            self.debug_log(f"<Function '{statement['name']}' declared.>")
             statement["is_builtin"] = False
+            if (statement["name"] in self.functions) and statement["is_final"]:
+                raise SyntaxError(f"Function '{statement['name']}' is already defined.")
             self.functions[statement["name"]] = statement
         elif statement["type"] == "VARIABLEDECLARATION":
+            self.debug_log(f"<Variable '{statement['name']}' declared.>")
             self.variables[statement["name"]] = self.evaluate(statement["value"])
         elif statement["type"] == "NUMBER":
             return float(statement["value"])
@@ -210,12 +165,26 @@ class Interpreter:
                 self.interpret(statement["else_body"])
         elif statement["type"] == "RETURN":
             self.return_value = self.evaluate(statement["value"])
+            self.debug_log(f"<Function returned '{self.return_value}'>")
+            return self.return_value
         elif statement["type"] == "ASSIGNMENT":
             self.variables[statement["name"]] = self.evaluate(statement["value"])
+            self.debug_log(f"<Variable '{statement['name']}' assigned to '{self.variables[statement['name']]}'")
+        elif statement["type"] == "OBJECTDECLARATION":
+            name = statement["name"]
+            self.debug_log(f"<Object '{name}' declared>")
+            self.objects[name] = {"functions": {}, "variables": {}}
+            for function in statement["functions"]:
+                function["is_builtin"] = False
+                self.objects[name]["functions"][function["name"]] = function
+            for variable in statement["variables"]:
+                self.objects[name]["variables"][variable["name"]] = variable["value"]
+            self.objects[name]["init"] = statement["init"]
         elif statement["type"] == "IMPORT":
             module_name = statement["module_name"]
             as_name = statement["as"]
             from_ = None if (statement["from"] is None) else self.evaluate(statement["from"])
+            self.debug_log(f"<Module '{module_name}' imported from '{statement["from"]}' as '{as_name}'>")
             self.import_module(module_name, as_name, from_)
         elif statement["type"] == "COMMENT":
             color = self.config.get("color_scheme", {}).get("comment", "#757575")
@@ -230,12 +199,15 @@ class Interpreter:
         elif statement["type"] == "BOOLEAN":
             return b_classes.Boolean(statement["value"], statement["literal_value"])
         elif statement["type"] == "CALL":
+            self.debug_log(f"<Function '{statement['name']}' called>")
             name = statement["name"]
             pos_args = [self.evaluate(pos_arg) for pos_arg in statement["pos_arguments"]]
             named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
                           statement["named_arguments"]}
             if name in self.functions:
                 return self.call_function(name, pos_args, named_args)
+            elif name in self.objects:
+                return self.call_object_assignment(self.objects[name], statement["name"], pos_args, named_args, name)
             else:
                 closest_match = find_closest_match(self.functions.keys(), name)
                 if closest_match:
@@ -243,13 +215,14 @@ class Interpreter:
                 else:
                     raise NameError(f"Name '{name}' is not defined.")
         elif statement["type"] == "VARIABLE":
+            self.debug_log(f"<Variable '{statement['name']}' accessed>")
             if statement["name"] == "null":
                 return None
             if statement["name"] not in self.variables:
                 if statement["name"] in self.functions:
                     raise NameError(f"Name '{statement['name']}' is not defined. Did you mean: '{statement['name']}()'?")
                 if statement["name"] in self.objects:
-                    return f"<Object at {id(self.objects[statement['name']])}>"
+                    return f"<object '__main__.{statement['name']}' at {id(self.objects[statement['name']])}>"
                 closest_match = find_closest_match(self.variables.keys(), statement["name"])
                 if closest_match:
                     raise NameError(f"Name '{statement['name']}' is not defined. Did you mean: '{closest_match}'?")
@@ -335,13 +308,13 @@ class Interpreter:
             elif operator == "==":
                 return b_classes.Boolean(left == right, left == right)
             elif operator == ">":
-                return left > right
+                return b_classes.Boolean(left > right)
             elif operator == "<":
-                return left < right
+                return b_classes.Boolean(left < right)
             elif operator == ">=":
-                return left >= right
+                return b_classes.Boolean(left >= right)
             elif operator == "<=":
-                return left <= right
+                return b_classes.Boolean(left <= right)
             elif operator == "!=":
                 return b_classes.Boolean(left != right, left != right)
             elif operator == "&&":
@@ -353,22 +326,34 @@ class Interpreter:
             else:
                 raise SyntaxError(f"Unexpected operator: {operator}")
         elif statement["type"] == "PROPERTY":
-            object_ = self.objects.get(statement["object_name"], {})
+            object_ = {}
+            if statement["object_name"] in self.variables:
+                object_ = self.variables[statement["object_name"]]
+            elif statement["object_name"] in self.objects:
+                object_ = self.objects[statement["object_name"]]
+            elif hasattr(builtins, statement["object_name"]):
+                object_ = getattr(builtins, statement["object_name"])
             if statement["property"]["type"] == "CALL":
+                self.debug_log(f"<Property '{statement['property']['name']}' called>")
                 name_ = statement["property"]["name"]
                 pos_args = [self.evaluate(pos_arg) for pos_arg in statement["property"]["pos_arguments"]]
                 named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
                               statement["property"]["named_arguments"]}
                 return self.call_object_function(object_, name_, pos_args, named_args, statement["object_name"])
             elif statement["property"]["type"] == "VARIABLE":
+                self.debug_log(f"<Property '{statement['property']['name']}' accessed>")
                 if not object_:
                     raise NameError(f"Object '{statement['object_name']}' is not defined.")
-                if not statement["property"]["name"] in object_["variables"]:
-                    closest_match = find_closest_match(object_["variables"].keys(), statement["property"]["name"])
-                    if closest_match:
-                        raise NameError(f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined. Did you mean: '{statement['object_name']}.{closest_match}'?")
-                    raise NameError(f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined.")
-                return object_.get("variables", {}).get(statement["property"]["name"], None)
+                if statement["property"]["name"] in object_["variables"]:
+                    return object_.get("variables", {}).get(statement["property"]["name"], b_classes.Boolean(None))
+                elif statement["property"]["name"] in object_["functions"]:
+                    return b_classes.Function(f"{statement["object_name"]}.{statement["property"]["name"]}", object_.get("functions", {}).get(statement["property"]["name"], b_classes.Boolean(None)))
+                closest_match = find_closest_match(object_["variables"].keys(), statement["property"]["name"])
+                if closest_match:
+                    raise NameError(f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined. Did you mean: '{statement['object_name']}.{closest_match}'?")
+                raise NameError(f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined.")
+            else:
+                raise SyntaxError(f"Unexpected property type: {statement['property']['type']}")
         else:
             raise SyntaxError(f"Unexpected statement: {statement}")
 
@@ -487,7 +472,7 @@ class Interpreter:
         i.objects = self.objects
         i.interpret(body)
         self.check_type(self.get_type(i.return_value), return_type, i.return_value)
-        return i.return_value
+        return b_classes.Boolean(i.return_value)
 
     def call_object_function(self, object_, function_name, pos_args, named_args, object_name=None):
         if not object_:
@@ -503,7 +488,7 @@ class Interpreter:
 
         body = functions[function_name]["body"]
         parameters = functions[function_name]["parameters"]
-        return_type = functions[function_name]["return_type"]
+        return_type = self.evaluate(functions[function_name]["return_type"])
         self.check_type(return_type)
 
         total_args = len(pos_args) + len(named_args)
@@ -539,4 +524,59 @@ class Interpreter:
         i.functions = self.functions
         i.objects = self.objects
         i.interpret(body)
-        return i.return_value
+        return b_classes.Boolean(i.return_value)
+
+    def call_object_assignment(self, object_, name, pos_args, named_args, object_name=None):
+        if not object_["init"]:
+            if pos_args or named_args:
+                raise TypeError(
+                    f"Object {name}() takes from 0 positional arguments but {len(pos_args) + len(named_args)} were given")
+            else:
+                self.variables[name] = object_
+                return b_classes.Object(self.variables[name])
+        elif object_["init"]:
+            body = object_["init"]["body"]
+            parameters = object_["init"]["parameters"]
+
+            total_args = len(pos_args) + len(named_args)
+            required_params = [param for param in parameters if param['default_value'] is None]
+
+            if total_args < len(required_params):
+                raise TypeError(f"Expected {len(required_params)} arguments, but got {total_args}")
+            if total_args > len(parameters):
+                raise TypeError(
+                    f"{function_name}() takes from {len(required_params)} to {len(parameters)} positional arguments but {total_args} were given")
+            all_args = {}
+
+            for i, parameter in enumerate(parameters):
+                param_name = parameter['name']
+                param_type = parameter['variable_type']
+                default_value = parameter['default_value']
+
+                if param_name in named_args:
+                    if not self.check_type(self.get_type(named_args[param_name]), param_type):
+                        raise TypeError(
+                            f"Expected type '{param_type}' for argument '{param_name}', but got '{self.get_type(named_args[param_name])}'")
+                    all_args[param_name] = named_args[param_name]
+                elif i < len(pos_args):
+                    all_args[param_name] = pos_args[i]
+                elif default_value is not None:
+                    all_args[param_name] = default_value
+                else:
+                    raise TypeError(f"Missing required positional argument: '{param_name}'")
+            i = Interpreter(self.config)
+            i.variables = {**self.variables, **all_args, "this": object_}  # Merge all arguments into the variables environment
+            i.functions = self.functions
+            i.objects = self.objects
+            i.interpret(body)
+            for f in i.functions.keys():
+                if (not i.functions[f]["is_builtin"]) and i.functions[f]["is_static"]:
+                    object_["functions"][f] = i.functions[f]
+                elif i.functions[f]["is_builtin"]:
+                    object_["functions"][f] = i.functions[f]
+                elif (not i.functions[f]["is_builtin"]) and (not i.functions[f]["is_static"]):
+                    object_["functions"][f] = i.functions[f]
+                    self.objects[name]["functions"][f] = i.functions[f]
+            object_["variables"] = i.variables
+            self.variables[name] = object_
+            return b_classes.Object(self.variables[name])

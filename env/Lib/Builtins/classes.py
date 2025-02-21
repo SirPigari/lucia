@@ -71,3 +71,93 @@ class Boolean:
         if isinstance(other, Boolean):
             return self.literal >= other.literal
         return self.literal >= other
+
+
+class Object:
+    def __init__(self, value=None, name=None):
+        if not name:
+            name = self.__class__.__name__
+        self.name = name
+        self._data = {}
+        if value:
+            if isinstance(value, dict):
+                self._data = value
+            elif isinstance(value, Object):
+                self._data = value.get_data()
+            else:
+                raise TypeError(f"Expected dictionary or Object, got {type(value).__name__}")
+
+    def __str__(self):
+        return f"<object '{self.name}' at {id(self)}>"
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __delitem__(self, key):
+        del self._data[key]
+
+    def __contains__(self, key):
+        return key in self._data
+
+    def get_data(self):
+        return self._data
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def setdefault(self, key, default=None):
+        return self._data.setdefault(key, default)
+
+    def pop(self, key, default=None):
+        return self._data.pop(key, default)
+
+    def popitem(self):
+        return self._data.popitem()
+
+    def clear(self):
+        self._data.clear()
+
+    def update(self, other=None, **kwargs):
+        if other is not None:
+            if isinstance(other, dict):
+                self._data.update(other)
+            elif isinstance(other, Object):
+                self._data.update(other.get_data())
+            else:
+                raise TypeError(f"Expected dictionary or Object, got {type(other).__name__}")
+        if kwargs:
+            self._data.update(kwargs)
+
+    def items(self):
+        return self._data.items()
+
+    def keys(self):
+        return self._data.keys()
+
+    def values(self):
+        return self._data.values()
+
+    def __eq__(self, other):
+        if isinstance(other, Object):
+            return self._data == other.get_data()
+        return False
+
+    def __ne__(self, other):
+        if isinstance(other, Object):
+            return self._data != other.get_data()
+        return True
+
+    def __repr__(self):
+        return f"Object(name={self.name}, data={repr(self._data)})"
+
+
+class Function:
+    def __init__(self, name, body=None):
+        self.name = name
+        self._data = body
+
+    def __str__(self):
+        return f"<function '{self.name}' at {id(self)}>"

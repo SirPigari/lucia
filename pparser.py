@@ -31,6 +31,12 @@ class Parser:
         if self.token is None:
             return None
 
+        if self.token == ('IDENTIFIER', 'object'):
+            return self.parse_object()
+
+        if self.token == ('IDENTIFIER', 'init'):
+            return self.parse_object_init()
+
         if self.token[0] == 'IDENTIFIER' and self.token[1] in ('void', 'int', 'float', 'string', 'bool', 'any'):
             return self.parse_type()
 
@@ -188,7 +194,7 @@ class Parser:
         }
 
     def parse_function_declaration(self):
-        modifiers = {"async": False, "public": None, "mutable": False, "final": False}
+        modifiers = {"async": False, "public": None, "static": False, "final": False}
 
         while self.token and self.token[0] == 'IDENTIFIER' and self.token[1] in ('async', 'public', 'static', 'private', 'mutable', 'final'):
             if self.token[1] == 'async':
@@ -196,11 +202,11 @@ class Parser:
             elif self.token[1] == 'public':
                 modifiers["public"] = True
             elif self.token[1] == 'static':
-                modifiers["mutable"] = False
+                modifiers["static"] = True
             elif self.token[1] == 'private':
                 modifiers["public"] = False
             elif self.token[1] == 'mutable':
-                modifiers["mutable"] = True
+                modifiers["final"] = False
             elif self.token[1] == 'final':
                 modifiers["final"] = True
             self.next()
@@ -227,7 +233,7 @@ class Parser:
             "return_type": return_type,
             "body": body,
             "is_async": modifiers["async"],
-            "is_mutable": modifiers["mutable"],
+            "is_static": modifiers["static"],
             "is_final": modifiers["final"],
             "is_public": modifiers["public"]
         }
@@ -450,3 +456,51 @@ class Parser:
             "value": value,
             "from": from_,
         }
+
+    def parse_object(self):
+        self.check_for('IDENTIFIER', 'object')
+        self.next()
+        name = self.token[1]
+        self.next()
+        self.check_for('SEPARATOR', ':')
+        self.next()
+        functions, variables, init = self.parse_object_body()
+        self.next()
+        return {
+            "type": "OBJECTDECLARATION",
+            "name": name,
+            "functions": functions,
+            "variables": variables,
+            "init": init
+        }
+
+    def parse_object_init(self):
+        self.check_for('IDENTIFIER', 'init')
+        self.next()
+        parameters = self.parse_parameters()
+        self.check_for('SEPARATOR', ':')
+        self.next()
+        body = self.parse_body()
+        self.next()
+        return {
+            "type": "OBJECTINIT",
+            "parameters": parameters,
+            "body": body
+        }
+
+    def parse_object_body(self):
+        functions = []
+        variables = []
+        init = {}
+        while self.token and not (self.token == ('IDENTIFIER', 'end')):
+            if self.token[0] == 'IDENTIFIER' and self.token[1] in ["fun", "async", "public", "static", "private", "mutable", "final"]:
+                functions.append(self.parse_function_declaration())
+            elif self.token == ('IDENTIFIER', 'init'):
+                init = self.parse_object_init()
+            elif self.token == ('IDENTIFIER', 'object'):
+                variables.append(self.parse_object())
+            elif self.token == ('IDENTIFIER', 'return'):
+                return self.parse_return_statement()
+            else:
+                variables.append(self.parse_variable_declaration())
+        return functions, variables, init

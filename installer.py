@@ -428,6 +428,7 @@ class Installer:
                 with open(os.path.join(install_path, f"lucia-Release{self.version}\\env\\config.json"), 'w') as file:
                     config = {
                       "debug": False,
+                      "debug_mode": "normal",
                       "use_lucia_traceback": True,
                       "warnings": True,
                       "print_comments": False,
