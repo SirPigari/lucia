@@ -310,7 +310,7 @@ class Parser:
             return self.parse_operation()
 
     def parse_return_type(self):
-        if self.token[0] == 'IDENTIFIER' and self.token[1] in ('void', 'int', 'float', 'string', 'bool', 'any'):
+        if self.token[0] == 'IDENTIFIER' and self.token[1] in ('void', 'int', 'float', 'string', 'bool', 'any', 'str'):
             return self.parse_type()
         else:
             raise SyntaxError(f"Return type '{self.token[1]}' is not supported.")

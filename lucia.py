@@ -68,11 +68,11 @@ def execute_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         code = file.read()
     tokens = lexer.lexer(code, include_comments=config.get('print_comments', False))
-    if config.get('debug_mode', 'normal') == 'full':
+    if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
         debug_log(f"Tokens generated: {tokens}")
     parser = pparser.Parser(tokens)
     parser.parse()
-    if config.get('debug_mode', 'normal') == 'full':
+    if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
         debug_log(f"Statements generated: {parser.statements}")
     interpreter_ = interpreter.Interpreter(config)
     interpreter_.interpret(parser.statements)

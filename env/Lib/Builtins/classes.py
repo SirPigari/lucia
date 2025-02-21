@@ -1,5 +1,16 @@
+class Literal:
+    def __init__(self, value):
+        self.value = value
+        if isinstance(value, bool):
+            self.value = Boolean(str(value), value)
+
+    def __str__(self):
+        return str(self.value)
+
+
 class Boolean:
     def __init__(self, value, literal=None):
+        og_val = value
         value = str(value).strip().lower()
         if value == 'true':
             self.value = 'true'
@@ -14,12 +25,8 @@ class Boolean:
             self.value = 'null'
             self.literal = None
         else:
-            if bool(value):
-                self.value = 'true'
-                self.literal = True
-            else:
-                self.value = 'false'
-                self.literal = False
+            self.value = og_val
+            self.literal = literal
         if literal is not None:
             self.literal = literal
 
@@ -74,11 +81,12 @@ class Boolean:
 
 
 class Object:
-    def __init__(self, value=None, name=None):
+    def __init__(self, value=None, name=None, custom_str=None):
         if not name:
             name = self.__class__.__name__
         self.name = name
         self._data = {}
+        self.custom_str = custom_str
         if value:
             if isinstance(value, dict):
                 self._data = value
@@ -88,6 +96,8 @@ class Object:
                 raise TypeError(f"Expected dictionary or Object, got {type(value).__name__}")
 
     def __str__(self):
+        if self.custom_str:
+            return self.custom_str
         return f"<object '{self.name}' at {id(self)}>"
 
     def __getitem__(self, key):

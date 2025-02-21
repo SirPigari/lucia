@@ -48,7 +48,6 @@ def range(start, stop=None, step=1):
     return range_(start, stop, step)
 
 def exit():
-    sys.exit()
     raise SystemExit
 
 
@@ -146,11 +145,21 @@ def keywords():
     sys.stdout.write("\n")
 
 
-def license(config=None):
-    file = open(f"{config.get('home_dir', '.')}\\LICENSE.md", "r")
-    content = file.read()
+def license(config=None, full=False):
+    file = open(f"{config.get('home_dir', '.')}\\..\\LICENSE", "r")
+    content = file.readlines()
+    line_num = 1
+    cont = ""
+    for line in content:
+        cont += f"{line}"
+        line_num += 1
+        if line_num == 7:
+            break
     file.close()
-    sys.stdout.write(content)
+    if full:
+        sys.stdout.write("".join(content))
+    else:
+        sys.stdout.write(cont)
     sys.stdout.write("\n")
 
 def credits(config=None):
@@ -161,7 +170,7 @@ def credits(config=None):
     sys.stdout.write("\n")
 
 def readme(config=None):
-    file = open(f"{config.get('home_dir', '.')}\\README.md", "r")
+    file = open(f"{config.get('home_dir', '.')}\\..\\README.md", "r")
     content = file.read()
     file.close()
     sys.stdout.write(content)
@@ -170,3 +179,6 @@ def readme(config=None):
 def version(config=None):
     version = config.get("version", "version unknown")
     return f"Lucia-{version}"
+
+def clear():
+    os.system("cls")
