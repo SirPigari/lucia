@@ -67,7 +67,7 @@ class Interpreter:
                 print(f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'))}{''.join(map(str, args))}\033[0m")
 
     def check_type(self, type_, expected=None, return_value=None):
-        valid_types = {"int", "str", "bool", "void", "float", "any", "null"}
+        valid_types = {"int", "str", "bool", "void", "float", "any", "null", "list", "object"}
 
         if type_ == "void":
             type_ = "null"
@@ -130,6 +130,10 @@ class Interpreter:
             return "null"
         elif isinstance(value, b_classes.Boolean):
             return "bool"
+        elif isinstance(value, float):
+            return "float"
+        elif isinstance(value, list):
+            return "list"
         else:
             return type(value).__name__
 
