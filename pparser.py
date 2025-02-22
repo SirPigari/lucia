@@ -7,7 +7,7 @@ class Parser:
     @property
     def token(self):
         if self.pos >= len(self.tokens):
-            return None
+            return (None, None)
         return self.tokens[self.pos]
 
     def next(self):
@@ -22,6 +22,7 @@ class Parser:
 
     def parse(self):
         while self.pos < len(self.tokens):
+            print(self.token)
             s = self.parse_expression()
             if s:
                 self.statements.append(s)
@@ -30,6 +31,10 @@ class Parser:
     def parse_expression(self):
         if self.token is None:
             return None
+
+        if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next()[0] == 'SEPARATOR' and \
+                self.get_next()[1] == '(':
+            return self.parse_function_call()
 
         if self.token == ('IDENTIFIER', 'object'):
             return self.parse_object()
@@ -93,10 +98,6 @@ class Parser:
             self.next()
             return {"type": "BOOLEAN", "value": value, "literal_value": literal_value}
 
-        if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next()[0] == 'SEPARATOR' and \
-                self.get_next()[1] == '(':
-            return self.parse_function_call()
-
         if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '.'):
             return self.parse_property()
 
@@ -155,10 +156,10 @@ class Parser:
         self.check_for('IDENTIFIER', 'import')
         self.next()
         module_name = self.token[1]
-        self.next()
         as_name = module_name
-        from_ = None
-        while self.token and self.token[0] == 'IDENTIFIER':
+        from_ = ".\\Lib"
+        self.next()
+        while self.token:
             if self.token == ('IDENTIFIER', 'as'):
                 self.next()
                 as_name = self.token[1]
@@ -166,7 +167,6 @@ class Parser:
             elif self.token == ('IDENTIFIER', 'from'):
                 self.next()
                 from_ = self.parse_expression()
-                self.next()
             else:
                 break
         return {
