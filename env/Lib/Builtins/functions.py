@@ -5,6 +5,7 @@ str_ = str
 int_ = int
 float_ = float
 range_ = range
+len_ = len
 
 def print(*args, end='\n'):
     args2 = []
@@ -26,7 +27,8 @@ def input(prompt=''):
     return sys.stdin.readline().strip()
 
 def len(obj):
-    return obj.__len__()
+    obj = str(obj)
+    return len_(obj)
 
 def str(obj):
     return str_(obj)

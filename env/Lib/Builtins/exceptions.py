@@ -1,10 +1,11 @@
-class ListPatterRecognitionWarning(Warning):
-    """Warning for when a list pattern is recognized."""
-    def __init__(self, message, *args):
-        super().__init__(message, *args)
-
-    def __str__(self):
-        return self.args[0]
-
 class LuciaException(Exception):
+    pass
+
+class LuciaWarning(Warning):
+    pass
+
+class ListPatterRecognitionWarning(LuciaWarning):
+    pass
+
+class RecursionLimitWarning(LuciaWarning):
     pass

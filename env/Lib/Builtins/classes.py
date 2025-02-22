@@ -3,9 +3,112 @@ class Literal:
         self.value = value
         if isinstance(value, bool):
             self.value = Boolean(str(value), value)
+        elif isinstance(value, int):
+            self.value = int(value)
+        elif isinstance(value, float):
+            self.value = float(value)
 
     def __str__(self):
         return str(self.value)
+
+    def __eq__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value == other
+
+    def __ne__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value != other
+
+    def __lt__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value < other
+
+    def __le__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value <= other
+
+    def __gt__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value > other
+
+    def __ge__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value >= other
+
+    def __add__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value + other
+
+    def __sub__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value - other
+
+    def __mul__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value * other
+
+    def __truediv__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value / other
+
+    def __floordiv__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value // other
+
+    def __mod__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value % other
+
+    def __pow__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value ** other
+
+    def __and__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value and other
+
+    def __or__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value or other
+
+    def __xor__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value ^ other
+
+    def __lshift__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value << other
+
+    def __rshift__(self, other):
+        if isinstance(other, Literal):
+            other = other.value
+        return self.value >> other
+
+    def __invert__(self):
+        return ~self.value
+
+    def __neg__(self):
+        return -self.value
+
+    def __pos__(self):
+        return +self.value
 
 
 class Boolean:
@@ -171,3 +274,16 @@ class Function:
 
     def __str__(self):
         return f"<function '{self.name}' at {id(self)}>"
+
+
+class Float(float):
+    pass
+
+class Int(int):
+    pass
+
+class Str(str):
+    pass
+
+class List(list):
+    pass

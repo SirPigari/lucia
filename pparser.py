@@ -22,7 +22,6 @@ class Parser:
 
     def parse(self):
         while self.pos < len(self.tokens):
-            print(self.token)
             s = self.parse_expression()
             if s:
                 self.statements.append(s)
@@ -32,9 +31,8 @@ class Parser:
         if self.token is None:
             return None
 
-        if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next()[0] == 'SEPARATOR' and \
-                self.get_next()[1] == '(':
-            return self.parse_function_call()
+        if self.token == ('IDENTIFIER', 'if'):
+            return self.parse_if_statement()
 
         if self.token == ('IDENTIFIER', 'object'):
             return self.parse_object()
@@ -42,11 +40,33 @@ class Parser:
         if self.token == ('IDENTIFIER', 'init'):
             return self.parse_object_init()
 
+        if self.token == ('IDENTIFIER', 'while'):
+            return self.parse_while_loop()
+
         if self.token[0] == 'IDENTIFIER' and self.token[1] in ('void', 'int', 'float', 'string', 'bool', 'any'):
             return self.parse_type()
 
-        if self.token == ('IDENTIFIER', 'while'):
-            return self.parse_while_loop()
+        if self.token == ('IDENTIFIER', 'for'):
+            return self.parse_for_loop()
+
+        if self.token[0] == 'IDENTIFIER' and self.token[1] in ["fun", "async", "public", "static", "private", "mutable", "final"]:
+            return self.parse_function_declaration()
+
+        if self.token[0] == 'IDENTIFIER' and self.token[1] == 'forget':
+            return self.parse_forget_statement()
+
+        if self.token == ('IDENTIFIER', 'import'):
+            return self.parse_import_statement()
+
+        if self.token == ('IDENTIFIER', 'throw'):
+            return self.parse_throw_statement()
+
+        if self.token[0] == 'IDENTIFIER' and self.token[1] == 'return':
+            return self.parse_return_statement()
+
+        if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next()[0] == 'SEPARATOR' and \
+                self.get_next()[1] == '(':
+            return self.parse_function_call()
 
         if self.token == ('SEPARATOR', '['):
             self.next()
@@ -67,10 +87,7 @@ class Parser:
             self.next()
             return {"type": "ITERABLE", "iterable_type": "LIST", "elements": elements}
 
-        if self.token == ('IDENTIFIER', 'for'):
-            return self.parse_for_loop()
-
-        if self.token[0] == 'SEPARATOR' and self.token[1] == '(':
+        if self.token == ('SEPARATOR', '('):
             self.next()
             expression = self.parse_expression()
             self.next()
@@ -85,13 +102,6 @@ class Parser:
         if self.token[0] in ('NUMBER', 'STRING', 'BOOLEAN') and self.get_next() and self.get_next()[0] == 'OPERATOR':
             return self.parse_operation()
 
-        # Check for function declaration (fun <name> ...)
-        if self.token[0] == 'IDENTIFIER' and self.token[1] in ["fun", "async", "public", "static", "private", "mutable", "final"]:
-            return self.parse_function_declaration()
-
-        if self.token[0] == 'IDENTIFIER' and self.token[1] == 'if':
-            return self.parse_if_statement()
-
         if self.token[0] == 'BOOLEAN':
             value = self.token[1]
             literal_value = True if value == 'true' else False if value == 'false' else None if value == 'null' else "Undefined"
@@ -100,15 +110,6 @@ class Parser:
 
         if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '.'):
             return self.parse_property()
-
-        if self.token == ('IDENTIFIER', 'import'):
-            return self.parse_import_statement()
-
-        if self.token == ('IDENTIFIER', 'throw'):
-            return self.parse_throw_statement()
-
-        if self.token[0] == 'IDENTIFIER' and self.token[1] == 'return':
-            return self.parse_return_statement()
 
         # Check for variable declaration or assignment
         elif self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next()[0] == 'SEPARATOR' and \
@@ -264,6 +265,8 @@ class Parser:
 
     def parse_body(self):
         body = []
+        if self.token == ('SEPARATOR', ':'):
+            self.next()
         while self.token and not (self.token == ('IDENTIFIER', 'end')):
             body.append(self.parse_expression())
         return body
@@ -504,3 +507,13 @@ class Parser:
             else:
                 variables.append(self.parse_variable_declaration())
         return functions, variables, init
+
+    def parse_forget_statement(self):
+        self.check_for('IDENTIFIER', 'forget')
+        self.next()
+        name = self.token[1]
+        self.next()
+        return {
+            "type": "FORGET",
+            "name": name
+        }

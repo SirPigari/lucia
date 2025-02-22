@@ -2,6 +2,9 @@ import sys
 import os
 import json
 import re
+import time
+import env
+import warnings
 
 sys.path += [os.path.dirname(__file__), os.path.join(os.path.dirname(__file__), 'env')]
 
@@ -9,16 +12,14 @@ import lexer
 import pparser
 import interpreter
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'env', 'config.json')
-config = json.load(open(CONFIG_PATH, 'r', encoding='utf-8'))
-color_map = config.get('color_scheme', {})
-FILE_PATH = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
-
-sys.path += [CONFIG_PATH, config.get('home_dir', os.path.join(os.path.dirname(__file__), 'env'))]
-sys.path = list(dict.fromkeys(sys.path))
-
-sys.setrecursionlimit((config.get('recursion_limit', 9999) * 3) + 9)
-PLACEHOLDER = object()
+def hex_to_ansi(hex_color):
+    if not hex_color or hex_color.lower() == "reset":
+        return "\033[0m"
+    match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
+    if not match:
+        return "\033[0m"
+    r, g, b = [int(match.group(1)[i:i+2], 16) for i in (0, 2, 4)]
+    return f"\033[38;2;{r};{g};{b}m"
 
 def check_config():
     if not isinstance(config, dict) or not isinstance(color_map, dict):
@@ -32,18 +33,6 @@ def check_config():
     for key in ["debug", "use_lucia_traceback", "print_comments", "recursion_limit", "home_dir"]:
         if config.get(key, PLACEHOLDER) is PLACEHOLDER:
             raise EnvironmentError(f"File '{CONFIG_PATH}' is corrupted. Entry '{key}' is missing.")
-
-check_config()
-os.chdir(config.get('home_dir', os.path.dirname(__file__)))
-
-def hex_to_ansi(hex_color):
-    if not hex_color or hex_color.lower() == "reset":
-        return "\033[0m"
-    match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
-    if not match:
-        return "\033[0m"
-    r, g, b = [int(match.group(1)[i:i+2], 16) for i in (0, 2, 4)]
-    return f"\033[38;2;{r};{g};{b}m"
 
 def debug_log(*args):
     if config.get('debug', False):
@@ -79,10 +68,54 @@ def execute_file(file_path):
 
 def handle_exception(exception, file_name, exit=True):
     exception_type = type(exception).__name__
-    color = color_map.get('exception', '#F44350') if isinstance(exception, (RecursionError, RuntimeError, Exception)) else color_map.get('warning', '#FFC107')
-    print(f"{hex_to_ansi(color)}-> File '{file_name}', Got traceback:\n{exception_type}: {exception}\33[0m")
+    if isinstance(exception, Exception):
+        print(f"{hex_to_ansi(color_map.get('exception', '#F44350'))}-> File '{file_name}', got traceback:\n{exception_type}: {exception}\33[0m")
+    elif isinstance(exception, Warning):
+        print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}-> File '{file_name}', warning:\n{exception_type}: {exception}\33[0m")
     if exit:
         sys.exit(1)
+
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'env', 'config.json')
+with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
+    config = json.load(config_file)
+color_map = config.get('color_scheme', {})
+FILE_PATH = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
+
+sys.path += [CONFIG_PATH, config.get('home_dir', os.path.join(os.path.dirname(__file__), 'env'))]
+sys.path = list(dict.fromkeys(sys.path))
+
+recursion_limit = config.get('recursion_limit', 9999)
+sys.setrecursionlimit((recursion_limit * 3) + 9)
+if recursion_limit > 10000:
+    if config.get('warnings', True):
+        if config.get('use_lucia_traceback', True):
+            print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}-> File '{__file__}', warning:\nRecursionLimitWarning: Recursion limit is unusually high.\033[0m")
+        else:
+            warnings.warn("Recursion limit is unusually high.", env.Lib.Builtins.exceptions.RecursionLimitWarning)
+PLACEHOLDER = object()
+
+check_config()
+os.chdir(config.get('home_dir', os.path.dirname(__file__)))
+
+
+if len(sys.argv) > 1:
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Lucia-{config.get('version', '(version unknown)')} Interpreter\nUsage: lucia.py [file_path]\n\033[0m")
+        sys.exit(0)
+    if "--version" in sys.argv or "-v" in sys.argv:
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Lucia-{config.get('version', '(version unknown)')}\033[0m")
+        sys.exit(0)
+    if "--config" in sys.argv:
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Config file path: {CONFIG_PATH}\033[0m")
+        sys.exit(0)
+    if "--home" in sys.argv:
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Home directory: {config.get('home_dir', os.path.join(os.path.dirname(__file__), 'env'))}\033[0m")
+        sys.exit(0)
+    if "--timer" in sys.argv:
+        start_time = time.time()
+        execute_file(FILE_PATH)
+        print(f"\n{hex_to_ansi(color_map.get('info', '#D10CFF'))}Execution time: {time.time() - start_time:.4f} seconds\033[0m")
+        sys.exit(0)
 
 if FILE_PATH:
     if config.get("use_lucia_traceback", True):

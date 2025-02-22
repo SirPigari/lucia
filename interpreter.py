@@ -11,6 +11,7 @@ import re
 import math
 import random
 import builtins
+import warnings
 
 def find_closest_match(word_list, target_word):
     if not word_list:
@@ -37,7 +38,8 @@ class Interpreter:
     def __init__(self, config):
         self.variables = {
             "LuciaException": b_exceptions.LuciaException,
-            "ListPatternRecognitionWarning": b_exceptions.ListPatterRecognitionWarning
+            "ListPatternRecognitionWarning": b_exceptions.ListPatterRecognitionWarning,
+            "RecursionLimitWarning": b_exceptions.RecursionLimitWarning,
         }
         self.config = config
         self.functions = {
@@ -59,7 +61,8 @@ class Interpreter:
             "clear": {"is_builtin": True, "function": b_functions.clear},
         }
         self.objects = {}
-        self.return_value = None
+        self.return_value = b_classes.Boolean(None)
+        self.is_returning = False
 
     def debug_log(self, *args):
         if self.config.get('debug', False):
@@ -141,6 +144,8 @@ class Interpreter:
         for statement in statements:
             statement: dict = dict(statement)
             self.evaluate(statement)
+            if self.is_returning:
+                return self.return_value
 
     def evaluate(self, statement):
         if statement["type"] == "FUNCTIONDECLARATION":
@@ -168,9 +173,22 @@ class Interpreter:
                 self.interpret(statement["body"])
             elif statement.get("else_body"):
                 self.interpret(statement["else_body"])
+        elif statement["type"] == "FORGET":
+            if statement["name"] in self.variables:
+                del self.variables[statement["name"]]
+            elif statement["name"] in self.functions:
+                del self.functions[statement["name"]]
+            elif statement["name"] in self.objects:
+                del self.objects[statement["name"]]
+            else:
+                closest_match = find_closest_match(self.variables.keys(), statement["name"])
+                if closest_match:
+                    raise NameError(f"Name '{statement['name']}' is not defined. Did you mean: '{closest_match}'?")
+                raise NameError(f"Name '{statement['name']}' is not defined.")
         elif statement["type"] == "RETURN":
             self.return_value = self.evaluate(statement["value"])
             self.debug_log(f"<Function returned '{self.return_value}'>")
+            self.is_returning = True
             return self.return_value
         elif statement["type"] == "ASSIGNMENT":
             self.variables[statement["name"]] = self.evaluate(statement["value"])
@@ -282,8 +300,7 @@ class Interpreter:
                         return result
 
                 if self.config.get("warnings", True):
-                    raise b_exceptions.ListPatterRecognitionWarning(
-                        f"List pattern was not recognized: {pattern_values}")
+                    warnings.warn(f"List pattern was not recognized: {pattern_values}", b_exceptions.ListPatterRecognitionWarning)
                 else:
                     return pattern_values + [end]
             else:
