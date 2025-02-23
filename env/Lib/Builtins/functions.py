@@ -186,3 +186,8 @@ def version(config=None):
 
 def clear():
     os.system("cls")
+
+def read_file(file_path, encoding='utf-8'):
+    with open(file_path, 'r', encoding=encoding) as file:
+        c = file.read()
+    return c

@@ -202,3 +202,22 @@ class Map(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._data = self
+
+
+class File:
+    def __init__(self, name, mode='r', encoding='utf-8'):
+        self.name = name
+        self.mode = mode
+        self.encoding = encoding
+        try:
+            self.file = open(name, mode, encoding=encoding)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"File '{name}' not found.")
+
+    def __enter__(self):
+        return self.file
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
+        if exc_val:
+            raise exc_val

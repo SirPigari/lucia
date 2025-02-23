@@ -58,6 +58,9 @@ class Parser:
         if self.token == ('IDENTIFIER', 'import'):
             return self.parse_import_statement()
 
+        if self.token == ('IDENTIFIER', 'with'):
+            return self.parse_with_statement()
+
         if self.token == ('IDENTIFIER', 'throw'):
             return self.parse_throw_statement()
 
@@ -560,4 +563,29 @@ class Parser:
             "type": "INDEX",
             "name": name,
             "index": index
+        }
+
+    def parse_with_statement(self):
+        self.check_for('IDENTIFIER', 'with')
+        self.next()
+        self.check_for('SEPARATOR', '(')
+        self.next()
+        with_ = self.parse_expression()
+        self.check_for('SEPARATOR', ')')
+        self.next()
+        as_ = None
+        if self.token == ('IDENTIFIER', 'as'):
+            self.next()
+            as_ = self.token[1]
+            self.next()
+        self.check_for('SEPARATOR', ':')
+        self.next()
+        body = self.parse_body()
+        self.check_for('IDENTIFIER', 'end')
+        self.next()
+        return {
+            "type": "WITH",
+            "with": with_,
+            "as": as_,
+            "body": body
         }

@@ -60,6 +60,7 @@ class Interpreter:
             "keywords": {"is_builtin": True, "function": b_functions.keywords},
             "version": {"is_builtin": True, "function": lambda: b_functions.version(self.config)},
             "clear": {"is_builtin": True, "function": b_functions.clear},
+            "File": {"is_builtin": True, "function": b_classes.File},
         }
         self.objects = {}
         self.return_value = b_classes.Boolean(None)
@@ -417,6 +418,10 @@ class Interpreter:
                 return b_classes.Boolean(not right, not right)
             else:
                 raise SyntaxError(f"Unexpected operator: {operator}")
+        elif statement["type"] == "WITH":
+            with self.evaluate(statement["with"]) as obj:
+                self.variables[statement["as"]] = obj
+                self.interpret(statement["body"])
         elif statement["type"] == "PROPERTY":
             if statement["object_name"] in self.variables:
                 object_ = self.variables[statement["object_name"]]
@@ -573,6 +578,17 @@ class Interpreter:
     def call_object_function(self, object_, function_name, pos_args, named_args, object_name=None):
         if not object_:
             raise NameError(f"Object '{object_name}' is not defined.")
+        if not isinstance(object_, dict):
+            attr = getattr(object_, function_name, None)
+            if attr:
+                if callable(attr):
+                    return attr(*pos_args, **named_args)
+                return attr
+            else:
+                closest_match = find_closest_match(object_.__dict__.keys(), function_name)
+                if closest_match:
+                    raise NameError(f"Function '{object_name}.{function_name}' is not defined. Did you mean: '{object_name}.{closest_match}'?")
+                raise NameError(f"Function '{object_name}.{function_name}' is not defined.")
         functions = object_["functions"]
         if not function_name in functions:
             closest_match = find_closest_match(functions.keys(), function_name)
