@@ -4,7 +4,7 @@ build
 dist
 *.spec
 env/config.json
-Lib/
+AdditionalLibs/
 .idea/
 __pycache__/
 *.pyc
