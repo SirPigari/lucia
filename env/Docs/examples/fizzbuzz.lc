@@ -1,0 +1,21 @@
+public static final fun fizzbuzz(n: int) -> any:
+    output = ""
+    if (n % 3 == 0):
+        output = output + "Fizz"
+    end
+    if (n % 5 == 0):
+        output = output + "Buzz"
+    end
+    if (output == ""):
+        output = n
+    end
+    return output
+end
+
+public static final fun main() -> void:
+    for (i in [1...100]):
+        print(fizzbuzz(i))
+    end
+end
+
+main()

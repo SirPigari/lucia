@@ -27,13 +27,14 @@ def input(prompt=''):
     return sys.stdin.readline().strip()
 
 def len(obj):
-    obj = str(obj)
     return len_(obj)
 
 def str(obj):
     return str_(obj)
 
 def int(obj):
+    if not obj:
+        return 0
     return int_(obj)
 
 def float(obj):
@@ -101,6 +102,7 @@ def keywords():
             "for": "Defines a loop that iterates over a range or collection.",
             "while": "Defines a loop that runs as long as a condition is true.",
             "return": "Exits a function and optionally returns a value.",
+            "forget": "Forgets the variable or function from the current scope.",
         }},
 
         # Function and Modifier Keywords

@@ -3,6 +3,7 @@ import os
 from env.Lib.Builtins import functions as b_functions
 from env.Lib.Builtins import classes as b_classes
 from env.Lib.Builtins import exceptions as b_exceptions
+from env.Lib.Builtins import variables as b_variables
 import importlib.util
 import sys
 import lexer
@@ -70,40 +71,36 @@ class Interpreter:
                 print(f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'))}{''.join(map(str, args))}\033[0m")
 
     def check_type(self, type_, expected=None, return_value=None):
-        valid_types = {"int", "str", "bool", "void", "float", "any", "null", "list", "object"}
+        valid_types = b_variables.VALID_TYPES
 
-        if type_ == "void":
-            type_ = "null"
+        types_mapping = {
+            "void": "null",
+            b_classes.List: "list",
+            b_classes.Map: "map",
+            b_classes.Function: "function",
+            b_classes.Object: "object",
+        }
 
-        if expected == "void":
-            expected = "null"
+        type_ = types_mapping.get(type_, type_)
+        expected = types_mapping.get(expected, expected)
 
         if isinstance(type_, b_classes.Boolean):
             type_ = "bool"
-
         if isinstance(expected, b_classes.Boolean):
             expected = "bool"
-
         if isinstance(return_value, b_classes.Boolean):
             return_value = return_value.value
 
-        if (type_ == "bool") and (expected == "void") and (return_value == "null"):
+        if type_ == "bool" and expected == "null" and return_value == "null":
             return True
 
         if expected:
-            if type_ == "any":
+            if "any" in {type_, expected}:
                 return True
-            if expected == "any":
-                return True
-            if expected not in valid_types:
-                return self._handle_invalid_type(expected, valid_types)
-            if type_ not in valid_types:
-                return self._handle_invalid_type(type_, valid_types)
+            if expected not in valid_types or type_ not in valid_types:
+                return self._handle_invalid_type(expected if expected not in valid_types else type_, valid_types)
 
-            if expected == "int" and type_ == "float":
-                return True
-
-            if expected == "float" and type_ == "int":
+            if {type_, expected} == {"int", "float"}:
                 return True
 
             if type_ != expected:
@@ -111,10 +108,7 @@ class Interpreter:
 
             return True
 
-        if type_ in valid_types:
-            return True
-
-        self._handle_invalid_type(type_, valid_types)
+        return type_ in valid_types or self._handle_invalid_type(type_, valid_types)
 
     def _handle_invalid_type(self, type_, valid_types):
         closest_match = find_closest_match(valid_types, type_)
@@ -137,6 +131,16 @@ class Interpreter:
             return "float"
         elif isinstance(value, list):
             return "list"
+        elif isinstance(value, dict):
+            return "map"
+        elif isinstance(value, b_classes.Object):
+            return "object"
+        elif isinstance(value, b_classes.Function):
+            return "function"
+        elif isinstance(value, b_classes.List):
+            return "list"
+        elif isinstance(value, b_classes.Map):
+            return "map"
         else:
             return type(value).__name__
 
@@ -231,6 +235,12 @@ class Interpreter:
                 return self.call_function(name, pos_args, named_args)
             elif name in self.objects:
                 return self.call_object_assignment(self.objects[name], statement["name"], pos_args, named_args, name)
+            elif name in self.variables:
+                obj = self.variables[name]
+                if isinstance(obj, b_classes.Object):
+                    return self.call_object_assignment(obj, statement["name"], pos_args, named_args, name)
+                elif isinstance(obj, b_classes.Function):
+                    return self.call_function(name, pos_args, named_args)
             else:
                 closest_match = find_closest_match(self.functions.keys(), name)
                 if closest_match:
@@ -240,20 +250,44 @@ class Interpreter:
         elif statement["type"] == "VARIABLE":
             self.debug_log(f"<Variable '{statement['name']}' accessed>")
             if statement["name"] == "null":
-                return None
+                return b_classes.Boolean(None)
             if statement["name"] not in self.variables:
                 if statement["name"] in self.functions:
-                    raise NameError(f"Name '{statement['name']}' is not defined. Did you mean: '{statement['name']}()'?")
+                    return b_classes.Function(statement["name"], self.functions[statement["name"]])
                 if statement["name"] in self.objects:
                     if "STR" in self.objects[statement["name"]]["functions"]:
-                        return b_classes.Object(self.variables[name], custom_str=str(
+                        return b_classes.Object(self.objects[statement["name"]], custom_str=str(
                             self.call_object_function(self.objects[statement["name"]], "STR", [], {}, self.objects[statement["name"]])))
-                    return f"<object '__main__.{statement['name']}' at {id(self.objects[statement['name']])}>"
+                    return b_classes.Object(self.objects[statement["name"]], statement["name"], custom_str=f"<object '__main__.{statement['name']}' at {id(self.objects[statement['name']])}>")
                 closest_match = find_closest_match(self.variables.keys(), statement["name"])
                 if closest_match:
                     raise NameError(f"Name '{statement['name']}' is not defined. Did you mean: '{closest_match}'?")
                 raise NameError(f"Name '{statement['name']}' is not defined.")
             return self.variables[statement["name"]]
+        elif statement["type"] == "ASSIGNMENT_INDEX":
+            name = statement["name"]
+            index = self.evaluate(statement["index"])
+            value = self.evaluate(statement["value"])
+            if name in self.variables:
+                if isinstance(self.variables[name], list):
+                    try:
+                        index = int(index)
+                    except ValueError:
+                        raise TypeError(f"Expected type 'int' for index, but got '{self.get_type(index)}'")
+                    if len(self.variables[name]) <= index:
+                        raise IndexError(f"Index out of range: {index}")
+                    if index < 0:
+                        self.variables[name][index + len(self.variables[name])] = value
+                    else:
+                        self.variables[name][index] = value
+                elif isinstance(self.variables[name], dict):
+                    self.variables[name][index] = value
+                else:
+                    self.variables[name][index] = value
+            elif name in self.objects:
+                self.objects[name][index] = value
+            else:
+                raise NameError(f"Name '{name}' is not defined.")
         elif statement["type"] == "ITERABLE":
             if statement["iterable_type"] == "LIST":
                 l = []
@@ -267,7 +301,7 @@ class Interpreter:
                 pattern_values = [self.evaluate(p) for p in pattern]
 
                 if len(pattern_values) == 1:
-                    return range(int(pattern_values[0]), int(end)+1)
+                    return b_classes.List(range(int(pattern_values[0]), int(end)+1))
 
                 differences = [pattern_values[i + 1] - pattern_values[i] for i in range(len(pattern_values) - 1)]
 
@@ -282,7 +316,7 @@ class Interpreter:
                             result.append(current)
                             current += step
 
-                        return result
+                        return b_classes.List(result)
 
                 elif len(pattern_values) >= 2:
                     fibonacci_like = True
@@ -297,14 +331,45 @@ class Interpreter:
                         while result[-1] <= end:
                             result.append(result[-2] + result[-1])
 
-                        return result
+                        return b_classes.List(result)
 
                 if self.config.get("warnings", True):
                     warnings.warn(f"List pattern was not recognized: {pattern_values}", b_exceptions.ListPatterRecognitionWarning)
                 else:
-                    return pattern_values + [end]
+                    return b_classes.List(pattern_values + [end])
+            elif statement["iterable_type"] == "MAP":
+                map_ = {}
+                keys = statement["keys"]
+                values = statement["values"]
+                for i, key in enumerate(keys):
+                    map_[self.evaluate(key)] = self.evaluate(values[i])
+                return b_classes.Map({self.evaluate(key): self.evaluate(value) for key, value in zip(keys, values)})
             else:
                 raise SyntaxError(f"Unexpected iterable type: {statement['iterable_type']}")
+        elif statement["type"] == "INDEX":
+            index = self.evaluate(statement["index"])
+            name = statement["name"]
+            if name in self.variables:
+                iterable = self.variables[name]
+            elif name in self.objects:
+                iterable = self.objects[name]
+            elif hasattr(builtins, name):
+                iterable = getattr(builtins, name)
+            else:
+                raise NameError(f"Name '{name}' is not defined.")
+            if isinstance(iterable, list):
+                try:
+                    index = int(index)
+                except ValueError:
+                    raise TypeError(f"Expected type 'int' for index, but got '{self.get_type(index)}'")
+                if len(iterable) <= index:
+                    raise IndexError(f"Index out of range: {index}")
+                if index < 0:
+                    return iterable[index + len(iterable)]
+            elif isinstance(iterable, dict):
+                if index not in iterable:
+                    raise b_exceptions.KeyError(f"Key '{index}' not found in '{name}'.")
+            return iterable[index]
         elif statement["type"] == "FOR":
             variable = statement["variable_name"]
             iterable = self.evaluate(statement["iterable"])
@@ -330,6 +395,8 @@ class Interpreter:
                 return left / right
             elif operator == "^":
                 return left ** right
+            elif operator == "%":
+                return left % right
             elif operator == "==":
                 return b_classes.Boolean(left == right, left == right)
             elif operator == ">":
@@ -351,7 +418,6 @@ class Interpreter:
             else:
                 raise SyntaxError(f"Unexpected operator: {operator}")
         elif statement["type"] == "PROPERTY":
-            object_ = {}
             if statement["object_name"] in self.variables:
                 object_ = self.variables[statement["object_name"]]
             elif statement["object_name"] in self.objects:

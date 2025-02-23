@@ -87,6 +87,26 @@ class Parser:
             self.next()
             return {"type": "ITERABLE", "iterable_type": "LIST", "elements": elements}
 
+        if self.token == ('SEPARATOR', '{'):
+            self.next()
+            keys = []
+            values = []
+            while self.token != ('SEPARATOR', '}'):
+                keys.append(self.parse_expression())
+                self.check_for('SEPARATOR', ':')
+                self.next()
+                values.append(self.parse_expression())
+                if self.token == ('SEPARATOR', '}'):
+                    break
+                self.check_for('SEPARATOR', ',')
+                self.next()
+            self.check_for('SEPARATOR', '}')
+            self.next()
+            return {"type": "ITERABLE", "iterable_type": "MAP", "keys": keys, "values": values}
+
+        if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '['):
+            return self.parse_indexing()
+
         if self.token == ('SEPARATOR', '('):
             self.next()
             expression = self.parse_expression()
@@ -212,8 +232,9 @@ class Parser:
                 modifiers["final"] = True
             self.next()
 
-        self.check_for('IDENTIFIER', 'fun')
-        self.next()
+        if self.token == ('IDENTIFIER', 'fun'):
+            self.check_for('IDENTIFIER', 'fun')
+            self.next()
         name = self.token[1]
         self.next()
         self.check_for('SEPARATOR', '(')
@@ -313,7 +334,7 @@ class Parser:
             return self.parse_operation()
 
     def parse_return_type(self):
-        if self.token[0] == 'IDENTIFIER' and self.token[1] in ('void', 'int', 'float', 'string', 'bool', 'any', 'str'):
+        if self.token[0] == 'IDENTIFIER':
             return self.parse_type()
         else:
             raise SyntaxError(f"Return type '{self.token[1]}' is not supported.")
@@ -516,4 +537,27 @@ class Parser:
         return {
             "type": "FORGET",
             "name": name
+        }
+
+    def parse_indexing(self):
+        name = self.token[1]
+        self.next()
+        self.check_for('SEPARATOR', '[')
+        self.next()
+        index = self.parse_expression()
+        self.check_for('SEPARATOR', ']')
+        self.next()
+        if self.token == ('OPERATOR', '='):
+            self.next()
+            value = self.parse_expression()
+            return {
+                "type": "ASSIGNMENT_INDEX",
+                "name": name,
+                "index": index,
+                "value": value
+            }
+        return {
+            "type": "INDEX",
+            "name": name,
+            "index": index
         }

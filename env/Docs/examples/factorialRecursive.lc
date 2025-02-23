@@ -1,0 +1,11 @@
+public static final fun factorialRecursive(n: int) -> int:
+    if (n == 0 || n == 1):
+        return 1
+    end
+    n1: int = n - 1
+    n2: int = factorial_recursive(n1)
+    return n * n2
+end
+
+num: int = 5
+print(factorialRecursive(num))

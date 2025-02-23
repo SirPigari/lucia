@@ -1,114 +1,24 @@
-class Literal:
-    def __init__(self, value):
-        self.value = value
-        if isinstance(value, bool):
-            self.value = Boolean(str(value), value)
-        elif isinstance(value, int):
-            self.value = int(value)
-        elif isinstance(value, float):
-            self.value = float(value)
-
-    def __str__(self):
-        return str(self.value)
-
-    def __eq__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value == other
-
-    def __ne__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value != other
-
-    def __lt__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value < other
-
-    def __le__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value <= other
-
-    def __gt__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value > other
-
-    def __ge__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value >= other
-
-    def __add__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value + other
-
-    def __sub__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value - other
-
-    def __mul__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value * other
-
-    def __truediv__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value / other
-
-    def __floordiv__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value // other
-
-    def __mod__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value % other
-
-    def __pow__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value ** other
-
-    def __and__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value and other
-
-    def __or__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value or other
-
-    def __xor__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value ^ other
-
-    def __lshift__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value << other
-
-    def __rshift__(self, other):
-        if isinstance(other, Literal):
-            other = other.value
-        return self.value >> other
-
-    def __invert__(self):
-        return ~self.value
-
-    def __neg__(self):
-        return -self.value
-
-    def __pos__(self):
-        return +self.value
+def Literal(__literal):
+    if isinstance(__literal, str):
+        return Str(__literal)
+    elif isinstance(__literal, int):
+        return Int(__literal)
+    elif isinstance(__literal, float):
+        return Float(__literal)
+    elif isinstance(__literal, bool):
+        return Boolean(__literal)
+    elif isinstance(__literal, Boolean):
+        return __literal
+    elif isinstance(__literal, list):
+        return List(__literal)
+    elif isinstance(__literal, dict):
+        return Map(__literal)
+    elif isinstance(__literal, Object):
+        return Object(__literal)
+    elif isinstance(__literal, Function):
+        return Object(__literal)
+    else:
+        raise TypeError(f"Unsupported literal type: {type(__literal).__name__}")
 
 
 class Boolean:
@@ -287,3 +197,8 @@ class Str(str):
 
 class List(list):
     pass
+
+class Map(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._data = self

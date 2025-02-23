@@ -1,0 +1,15 @@
+public static final fun isPrime(num: int) -> bool:
+    if (num < 2):
+        return false
+    end
+    for (i in [2...num - 1]):
+        if (num % i == 0):
+            return false
+        end
+    end
+    return true
+end
+
+for (num in [1...100]):
+    print(num, isPrime(num))
+end

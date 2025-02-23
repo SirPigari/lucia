@@ -1,0 +1,13 @@
+public static final fun fib(n: int) -> int:
+	print(n)
+	a = 0
+	b = 1
+	for (i in range(2, n + 1)):
+		temp = b
+		b = a + b
+		a = temp
+	end
+	return b
+end
+
+print(fib(1476))
