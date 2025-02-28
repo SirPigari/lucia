@@ -14,8 +14,8 @@ import random
 import builtins
 import warnings
 
-# CODE WILL BE DEPRICATED
-# ITS SLOW I DONT RECOMMEND USING IT IN PROD
+# CODE WILL BE DEPRECATED
+# ITS SLOW I DON'T RECOMMEND USING IT IN PROD
 
 def find_closest_match(word_list, target_word):
     if not word_list:
