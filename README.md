@@ -4,9 +4,12 @@ Lucia is a simple, lightweight, and fast programming language made in python.
 
 ___
 
-## What's new in Lucia 1.0?
+## Currently working on:
 
-- Lucia 1.0 is the first version of Lucia.
+- Adding try-catch statement
+- Fixing bugs
+- Documentation
+- Testing
 
 ___
 
