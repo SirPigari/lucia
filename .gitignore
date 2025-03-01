@@ -7,5 +7,6 @@ env/config.json
 AdditionalLibs/
 .idea/
 __pycache__/
+env/Lib/Builtins/__pycache__/
 *.pyc
 tests/

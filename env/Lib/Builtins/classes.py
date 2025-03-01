@@ -16,7 +16,9 @@ def Literal(__literal):
     elif isinstance(__literal, Object):
         return Object(__literal)
     elif isinstance(__literal, Function):
-        return Object(__literal)
+        return Function(__literal)
+    elif isinstance(__literal, Variable):
+        return Variable(name="_", value=__literal)
     else:
         raise TypeError(f"Unsupported literal type: {type(__literal).__name__}")
 
@@ -94,12 +96,15 @@ class Boolean:
 
 
 class Object:
-    def __init__(self, value=None, name=None, custom_str=None):
+    def __init__(self, value=None, name=None, custom_str=None, is_builtin=False, object=None):
         if not name:
             name = self.__class__.__name__
         self.name = name
         self._data = {}
         self.custom_str = custom_str
+        self.is_builtin = is_builtin
+        if self.is_builtin:
+            self.object = object
         if value:
             if isinstance(value, dict):
                 self._data = value
@@ -177,22 +182,209 @@ class Object:
         return f"Object(name={self.name}, data={repr(self._data)})"
 
 
-class Function:
-    def __init__(self, name, body=None):
-        self.name = name
-        self._data = body
-
-    def __str__(self):
-        return f"<function '{self.name}' at {id(self)}>"
-
-
 class Variable:
     def __init__(self, name, value=None):
         self.name = name
         self.value = value
 
     def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
         return f"<variable '{self.name}' at {id(self)}>"
+
+    def evaluate(self):
+        return self.value
+
+    def __int__(self):
+        return int(self.value)
+
+    def __float__(self):
+        return float(self.value)
+
+    def __bool__(self):
+        return bool(self.value)
+
+    def __hash__(self):
+        return hash(self.value)
+
+    def __iter__(self):
+        return iter(self.value)
+
+    def type(self):
+        return type(self.value)
+
+    def __len__(self):
+        return len(self.value)
+
+    def __getitem__(self, key):
+        if isinstance(self.value, (dict, list)):
+            return self.value[key]
+        raise TypeError(f"Variable '{self.name}' does not support indexing (not a list or dict)")
+
+    def __setitem__(self, key, value):
+        if isinstance(self.value, (dict, list)):
+            self.value[key] = value
+        else:
+            raise TypeError(f"Cannot assign value to index '{key}' in variable '{self.name}' (not a list or dict)")
+
+    def get(self, key, default=None):
+        if isinstance(self.value, dict):
+            return self.value.get(key, default)
+        raise TypeError(f"Variable '{self.name}' does not support key-value access (not a dict)")
+
+    def setdefault(self, key, default=None):
+        if isinstance(self.value, dict):
+            return self.value.setdefault(key, default)
+        raise TypeError(f"Variable '{self.name}' does not support key-value access (not a dict)")
+
+    # Arithmetic operators (returning value)
+    def __add__(self, other):
+        if isinstance(other, Variable):
+            return self.value + other.value
+        return self.value + other
+
+    def __sub__(self, other):
+        if isinstance(other, Variable):
+            return self.value - other.value
+        return self.value - other
+
+    def __mul__(self, other):
+        if isinstance(other, Variable):
+            return self.value * other.value
+        return self.value * other
+
+    def __truediv__(self, other):
+        if isinstance(other, Variable):
+            return self.value / other.value
+        return self.value / other
+
+    def __floordiv__(self, other):
+        if isinstance(other, Variable):
+            return self.value // other.value
+        return self.value // other
+
+    def __mod__(self, other):
+        if isinstance(other, Variable):
+            return self.value % other.value
+        return self.value % other
+
+    def __pow__(self, other):
+        if isinstance(other, Variable):
+            return self.value ** other.value
+        return self.value ** other
+
+    # Comparison operators (returning Boolean value)
+    def __eq__(self, other):
+        if isinstance(other, Variable):
+            return Boolean(self.value == other.value)
+        return Boolean(self.value == other)
+
+    def __ne__(self, other):
+        if isinstance(other, Variable):
+            return Boolean(self.value != other.value)
+        return Boolean(self.value != other)
+
+    def __lt__(self, other):
+        if isinstance(other, Variable):
+            return Boolean(self.value < other.value)
+        return Boolean(self.value < other)
+
+    def __le__(self, other):
+        if isinstance(other, Variable):
+            return Boolean(self.value <= other.value)
+        return Boolean(self.value <= other)
+
+    def __gt__(self, other):
+        if isinstance(other, Variable):
+            return Boolean(self.value > other.value)
+        return Boolean(self.value > other)
+
+    def __ge__(self, other):
+        if isinstance(other, Variable):
+            return Boolean(self.value >= other.value)
+        return Boolean(self.value >= other)
+
+    # Logical operators (returning Boolean value)
+    def __and__(self, other):
+        if isinstance(other, Variable):
+            return Boolean(self.value and other.value)
+        return Boolean(self.value and other)
+
+    def __or__(self, other):
+        if isinstance(other, Variable):
+            return Boolean(self.value or other.value)
+        return Boolean(self.value or other)
+
+    def __not__(self):
+        return Boolean(not self.value)
+
+    # In-place arithmetic operators (modifies the value in-place and returns it)
+    def __iadd__(self, other):
+        if isinstance(other, Variable):
+            self.value += other.value
+        else:
+            self.value += other
+        return self.value
+
+    def __isub__(self, other):
+        if isinstance(other, Variable):
+            self.value -= other.value
+        else:
+            self.value -= other
+        return self.value
+
+    def __imul__(self, other):
+        if isinstance(other, Variable):
+            self.value *= other.value
+        else:
+            self.value *= other
+        return self.value
+
+    def __itruediv__(self, other):
+        if isinstance(other, Variable):
+            self.value /= other.value
+        else:
+            self.value /= other
+        return self.value
+
+    def __ifloordiv__(self, other):
+        if isinstance(other, Variable):
+            self.value //= other.value
+        else:
+            self.value //= other
+        return self.value
+
+    def __imod__(self, other):
+        if isinstance(other, Variable):
+            self.value %= other.value
+        else:
+            self.value %= other
+        return self.value
+
+    def __ipow__(self, other):
+        if isinstance(other, Variable):
+            self.value **= other.value
+        else:
+            self.value **= other
+        return self.value
+
+
+class Function:
+    def __init__(self, name=None, parameters=None, body=None, mods=None, return_type=None, is_builtin=False, function=None):
+        if not name:
+            name = self.__class__.__name__
+        self.name = name
+        self.parameters = parameters
+        self.body = body
+        self.modifiers = mods
+        self.return_type = return_type
+        self.is_builtin = is_builtin
+        if self.is_builtin:
+            self.function = function
+
+    def __str__(self):
+        return f"<function '{self.name}' at {id(self)}>"
 
 
 class Float(float):
@@ -230,3 +422,16 @@ class File:
         self.file.close()
         if exc_val:
             raise exc_val
+
+class TestContext:
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return f"<TestContext at {id(self)}>"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self

@@ -1,0 +1,5 @@
+public static final fun test() -> int: return 0 end
+
+private static final fun you_cant_call_me_lol() -> int: print("you cant call me lol") end
+
+public static final fun you_can_call_me() -> int: print("you can call me") return 0 end

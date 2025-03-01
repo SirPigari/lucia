@@ -2,17 +2,17 @@ import re
 
 # Token specifications
 TOKEN_SPECIFICATION = [
-    ('NUMBER', r'-?\b\d+(\.\d+)?\b'),                                           # Integer or decimal number
-    ('STRING', r'".*?"|\'.*?\''),                                               # Double or single quoted string
-    ('BOOLEAN', r'\b(true|false|null)\b'),                                      # Boolean literals
-    ('COMMENT_INLINE', r'<#.*?#>'),                                             # In-line comment
-    ('COMMENT_SINGLE', r'//.*'),                                                # Single-line comment
-    ('COMMENT_MULTI', r'/\*[\s\S]*?\*/'),                                       # Multi-line comment (replaces DOTALL flag)
-    ('IDENTIFIER', r'\b[a-zA-Z_]\w*\b'),                                        # Identifiers (variable/function names)
-    ('OPERATOR', r'>=|==|<=|=|->|\+|\-|\^|\*|\/|>|<|!|%|\|\||&&'),              # Operators
-    ('SEPARATOR', r'\.\.\.|[(){}\[\];:.,]'),                                    # Separators
-    ('WHITESPACE', r'\s+'),                                                     # Whitespace
-    ('INVALID', r'.')                                                           # Any other characters
+    ('NUMBER', r'-?\b\d+(\.\d+)?\b'),                                               # Integer or decimal number
+    ('STRING', r'".*?"|\'.*?\''),                                                   # Double or single quoted string
+    ('BOOLEAN', r'\b(true|false|null)\b'),                                          # Boolean literals
+    ('COMMENT_INLINE', r'<#.*?#>'),                                                 # In-line comment
+    ('COMMENT_SINGLE', r'//.*'),                                                    # Single-line comment
+    ('COMMENT_MULTI', r'/\*[\s\S]*?\*/'),                                           # Multi-line comment (replaces DOTALL flag)
+    ('IDENTIFIER', r'\b[a-zA-Z_]\w*\b'),                                            # Identifiers (variable/function names)
+    ('OPERATOR', r'->|>=|==|<=|\+=|-=|\*=|/=|=|\+|\-|\^|\*|\/|>|<|!|%|\|\||&&'),    # Operators
+    ('SEPARATOR', r'\.\.\.|[(){}\[\];:.,]'),                                        # Separators
+    ('WHITESPACE', r'\s+'),                                                         # Whitespace
+    ('INVALID', r'.')                                                               # Any other characters
 ]
 
 TOKEN_REGEX = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPECIFICATION)

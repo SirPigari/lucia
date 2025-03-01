@@ -8,9 +8,10 @@ import warnings
 
 sys.path += [os.path.dirname(__file__), os.path.join(os.path.dirname(__file__), 'env')]
 
-import lexer
-import pparser
 import interpreter
+import pparser
+import lexer
+
 
 def hex_to_ansi(hex_color):
     if not hex_color or hex_color.lower() == "reset":
@@ -58,7 +59,7 @@ def input_exec():
         debug_log(f"Statements generated: {parser.statements}")
     interpreter_.interpret(parser.statements)
 
-def execute_file(file_path):
+def execute_file(file_path, exit=True):
     global interpreter, pparser, lexer
     with open(file_path, 'r', encoding='utf-8') as file:
         code = file.read()
@@ -100,7 +101,7 @@ if recursion_limit > 10000:
         if config.get('use_lucia_traceback', True):
             print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}-> File '{__file__}', warning:\nRecursionLimitWarning: Recursion limit is unusually high.\033[0m")
         else:
-            warnings.warn("Recursion limit is unusually high.", env.Lib.Builtins.exceptions.RecursionLimitWarning)
+            warnings.warn("Recursion limit is unusually high.", env.Lib.Builtins.old.exceptions.RecursionLimitWarning)
 PLACEHOLDER = object()
 
 check_config()
@@ -125,9 +126,23 @@ if len(sys.argv) > 1:
         execute_file(FILE_PATH)
         print(f"\n{hex_to_ansi(color_map.get('info', '#D10CFF'))}Execution time: {time.time() - start_time:.4f} seconds\033[0m")
         sys.exit(0)
-    if "--use-new-interpreter" in sys.argv:
-        import assets.interpreter_new as interpreter
-        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Using new interpreter.\nRemove '--use-new-interpreter' to use the default.\n\033[0m")
+    if "--use-old-interpreter" in sys.argv:
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Using old interpreter.\nRemove '--use-old-interpreter' to use the default.\n\033[0m")
+        import env.assets.interpreter_old as interpreter
+    if "--test-all-tests" in sys.argv:
+        path = os.path.join(config.get('home_dir', os.path.dirname(__file__)), 'Docs\\tests')
+        lucia_ext = config.get('lucia_file_extensions', [".lucia", ".luc", ".lc", ".l"])
+        for file in os.listdir(path):
+            if "."+file.rsplit(os.path.extsep, 1)[-1] in lucia_ext:
+                print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Running test '{file}'...\n\033[0m")
+                try:
+                    execute_file(os.path.join(path, file), exit=False)
+                except Exception as e:
+                    print(f"{hex_to_ansi(color_map.get('exception', '#F44350'))}Test '{file}' failed with error:\n{type(e).__name__}: {e}\n\033[0m")
+            else:
+                print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}Skipping test '{file}'...\n\033[0m")
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}All tests have been executed.\033[0m")
+        sys.exit(0)
 
 if FILE_PATH:
     if config.get("use_lucia_traceback", True):

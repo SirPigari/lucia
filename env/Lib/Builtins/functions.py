@@ -7,6 +7,8 @@ float_ = float
 range_ = range
 len_ = len
 
+import sys
+
 def print(*args, end='\n'):
     args2 = []
     for arg in args:
@@ -19,8 +21,10 @@ def print(*args, end='\n'):
                 arg = str(float_value)
         except ValueError:
             pass
-        args2.append(arg)
+        args2.append(arg.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r").replace("\\b", "\b").replace("\\f", "\f").replace("\\v", "\v"))
+
     sys.stdout.write(f"{' '.join(args2)}{end}")
+
 
 def input(prompt=''):
     sys.stdout.write(prompt)

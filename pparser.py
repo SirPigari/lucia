@@ -205,8 +205,7 @@ class Parser:
         name = self.token[1]
         self.next()
         self.next()
-        variable_type = self.token[1]
-        self.next()
+        variable_type = self.parse_type()
         value = {"type": "BOOLEAN", "value": "null", "literal_value": None}
         if self.token == ('OPERATOR', '='):
             self.next()
@@ -344,8 +343,10 @@ class Parser:
             raise SyntaxError(f"Return type '{self.token[1]}' is not supported.")
 
     def parse_return_statement(self):
-        self.next()  # Skip 'return'
-        value = self.parse_expression()
+        self.next()
+        value = {"type": "BOOLEAN", "value": "null", "literal_value": None}
+        if self.token and self.token != ('IDENTIFIER', 'end'):
+            value = self.parse_expression()
         return {
             "type": "RETURN",
             "value": value
