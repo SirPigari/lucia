@@ -457,6 +457,7 @@ class Interpreter:
                     raise NameError(f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined. Did you mean: '{statement['object_name']}.{closest_match}'?")
                 raise NameError(f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined.")
             else:
+                print(statement)
                 raise SyntaxError(f"Unexpected property type: {statement['property']['type']}")
         else:
             raise SyntaxError(f"Unexpected statement: {statement}")
@@ -642,6 +643,7 @@ class Interpreter:
         return b_classes.Literal(i.return_value)
 
     def call_object_assignment(self, object_, name, pos_args, named_args, object_name=None):
+        print(object_, name, pos_args, named_args, object_name)
         if not object_["init"]:
             if pos_args or named_args:
                 raise TypeError(

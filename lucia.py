@@ -46,10 +46,16 @@ def input_exec():
         print("Use 'exit()' to exit.")
         return
     tokens = lexer.lexer(code, include_comments=config.get('print_comments', False))
-    debug_log(f"Tokens generated: {tokens}")
+    if not tokens:
+        if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
+            debug_log(f"Statements generated: []")
+        return
+    if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
+        debug_log(f"Tokens generated: {tokens}")
     parser = pparser.Parser(tokens)
     parser.parse()
-    debug_log(f"Statements generated: {parser.statements}")
+    if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
+        debug_log(f"Statements generated: {parser.statements}")
     interpreter_.interpret(parser.statements)
 
 def execute_file(file_path):
@@ -59,6 +65,9 @@ def execute_file(file_path):
     tokens = lexer.lexer(code, include_comments=config.get('print_comments', False))
     if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
         debug_log(f"Tokens generated: {tokens}")
+    if not tokens:
+        debug_log(f"Statements generated: []")
+        return
     parser = pparser.Parser(tokens)
     parser.parse()
     if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
@@ -116,6 +125,9 @@ if len(sys.argv) > 1:
         execute_file(FILE_PATH)
         print(f"\n{hex_to_ansi(color_map.get('info', '#D10CFF'))}Execution time: {time.time() - start_time:.4f} seconds\033[0m")
         sys.exit(0)
+    if "--use-new-interpreter" in sys.argv:
+        import assets.interpreter_new as interpreter
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Using new interpreter.\nRemove '--use-new-interpreter' to use the default.\n\033[0m")
 
 if FILE_PATH:
     if config.get("use_lucia_traceback", True):

@@ -28,7 +28,8 @@ class Parser:
         return self.statements
 
     def parse_expression(self):
-        if self.token is None:
+        if self.token == (None, None):
+            self.next()
             return None
 
         if self.token == ('IDENTIFIER', 'if'):
@@ -181,7 +182,7 @@ class Parser:
         self.next()
         module_name = self.token[1]
         as_name = module_name
-        from_ = ".\\Lib"
+        from_ = {"type": "STRING", "value": ".\\Lib"}
         self.next()
         while self.token:
             if self.token == ('IDENTIFIER', 'as'):
@@ -245,8 +246,8 @@ class Parser:
         self.check_for('OPERATOR', '->')
         self.next()
         return_type = self.parse_return_type()
-        self.check_for('SEPARATOR', ':')
-        self.next()
+        if self.token == ('SEPARATOR', ':'):
+            self.next()
         body = self.parse_body()
         self.check_for('IDENTIFIER', 'end')
         self.next()

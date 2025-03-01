@@ -16,7 +16,7 @@ def Literal(__literal):
     elif isinstance(__literal, Object):
         return Object(__literal)
     elif isinstance(__literal, Function):
-        return Object(__literal)
+        return Function(__literal)
     else:
         raise TypeError(f"Unsupported literal type: {type(__literal).__name__}")
 
@@ -94,12 +94,15 @@ class Boolean:
 
 
 class Object:
-    def __init__(self, value=None, name=None, custom_str=None):
+    def __init__(self, value=None, name=None, custom_str=None, is_builtin=False, object=None):
         if not name:
             name = self.__class__.__name__
         self.name = name
         self._data = {}
         self.custom_str = custom_str
+        self.is_builtin = is_builtin
+        if self.is_builtin:
+            self.object = object
         if value:
             if isinstance(value, dict):
                 self._data = value
@@ -178,21 +181,20 @@ class Object:
 
 
 class Function:
-    def __init__(self, name, body=None):
+    def __init__(self, name=None, parameters=None, body=None, mods=None, return_type=None, is_builtin=False, function=None):
+        if not name:
+            name = self.__class__.__name__
         self.name = name
-        self._data = body
+        self.parameters = parameters
+        self.body = body
+        self.modifiers = mods
+        self.return_type = return_type
+        self.is_builtin = is_builtin
+        if self.is_builtin:
+            self.function = function
 
     def __str__(self):
         return f"<function '{self.name}' at {id(self)}>"
-
-
-class Variable:
-    def __init__(self, name, value=None):
-        self.name = name
-        self.value = value
-
-    def __str__(self):
-        return f"<variable '{self.name}' at {id(self)}>"
 
 
 class Float(float):
