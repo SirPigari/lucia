@@ -6,6 +6,13 @@ import time
 import env
 import warnings
 
+if hasattr(sys, 'frozen'):
+    sys.path += [os.path.abspath(sys._MEIPASS)]
+    if os.getcwd().endswith('bin'):
+        os.chdir(os.path.abspath("../../"))
+    else:
+        os.chdir(os.path.dirname(__file__))
+
 sys.path += [os.path.dirname(__file__), os.path.join(os.path.dirname(__file__), 'env')]
 
 import interpreter
@@ -24,16 +31,18 @@ def hex_to_ansi(hex_color):
 
 def check_config():
     if not isinstance(config, dict) or not isinstance(color_map, dict):
-        raise TypeError("Config file must be a JSON object.")
+        raise TypeError(f"Config file must be a JSON object. Run '{os.path.abspath('.\\env\\activate.py')}' to activate the environment.")
+    if config.get('moded', False):
+        return
     if not config.get('version', None):
-        raise EnvironmentError("File 'config.json' is corrupted. Entry 'version' is missing.")
+        raise EnvironmentError(f"File 'config.json' is corrupted. Entry 'version' is missing. Run '{os.path.abspath('.\\env\\activate.py')}' to activate the environment.")
     if not color_map:
-        raise EnvironmentError("File 'config.json' is corrupted. Entry 'color_scheme' is missing.")
+        raise EnvironmentError(f"File 'config.json' is corrupted. Entry 'color_scheme' is missing. Run '{os.path.abspath('.\\env\\activate.py')}' to activate the environment.")
     if not config.get('debug_mode', None) in ['normal', 'full', 'minimal']:
-        raise EnvironmentError("File 'config.json' is corrupted. Entry 'debug_mode' must be either 'normal', 'full' or 'minimal'.")
+        raise EnvironmentError(f"File 'config.json' is corrupted. Entry 'debug_mode' must be either 'normal', 'full' or 'minimal'. Run '{os.path.abspath('.\\env\\activate.py')}' to activate the environment.")
     for key in ["debug", "use_lucia_traceback", "print_comments", "recursion_limit", "home_dir"]:
         if config.get(key, PLACEHOLDER) is PLACEHOLDER:
-            raise EnvironmentError(f"File '{CONFIG_PATH}' is corrupted. Entry '{key}' is missing.")
+            raise EnvironmentError(f"File '{CONFIG_PATH}' is corrupted. Entry '{key}' is missing. Run '{os.path.abspath('.\\env\\activate.py')}' to activate the environment.")
 
 def debug_log(*args):
     if config.get('debug', False):
@@ -76,6 +85,10 @@ def execute_file(file_path, exit=True):
     interpreter_ = interpreter.Interpreter(config)
     interpreter_.interpret(parser.statements)
 
+def activate():
+    os.chdir(os.path.dirname(__file__))
+    os.system(".\\env\\activate.py")
+
 def handle_exception(exception, file_name, exit=True):
     exception_type = type(exception).__name__
     if isinstance(exception, Exception):
@@ -87,7 +100,12 @@ def handle_exception(exception, file_name, exit=True):
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'env', 'config.json')
 with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
-    config = json.load(config_file)
+    try:
+        config = json.load(config_file)
+    except json.JSONDecodeError:
+        activate()
+        print(f"{hex_to_ansi('#F44350')}Config file is corrupted. Environment has been activated.\033[0m")
+        sys.exit(1)
 color_map = config.get('color_scheme', {})
 FILE_PATH = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
 
@@ -105,6 +123,13 @@ if recursion_limit > 10000:
 PLACEHOLDER = object()
 
 check_config()
+
+expected_env = os.path.join(os.path.dirname(__file__), 'env')
+if config.get('home_dir', PLACEHOLDER) != expected_env:
+    if config.get("moded", False):
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is not activated. Use 'env\\activate.py' to activate the environment. Please run the file again.\033[0m")
+        activate()
+
 os.chdir(config.get('home_dir', os.path.dirname(__file__)))
 
 

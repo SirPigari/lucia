@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 
 def hex_to_ansi(hex_color):
 	if not hex_color or hex_color.lower() == "reset":
@@ -13,6 +14,7 @@ def hex_to_ansi(hex_color):
 VERSION = "1.0"
 ENV_PATH = os.path.abspath(os.path.dirname(__file__))
 config = {
+  "moded": False,
   "debug": False,
   "debug_mode": "normal",
   "supports_color": True,
@@ -36,6 +38,6 @@ config = {
 }
 
 with open(f"{ENV_PATH}/config.json", "w") as file:
-	json.dump(config, file, indent=4)
+	json.dump(config, file, indent=2)
 
 print("Environment activated.")
