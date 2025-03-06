@@ -3,11 +3,16 @@
   "debug": true,
   "debug_mode": "full",
   "supports_color": true,
-  "use_lucia_traceback": false,
+  "use_lucia_traceback": true,
   "warnings": true,
-  "print_comments": true,
-  "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
-  "home_dir": "C:\\LuciaAPL\\env",
+  "print_comments": false,
+  "lucia_file_extensions": [
+    ".lucia",
+    ".luc",
+    ".lc",
+    ".l"
+  ],
+  "home_dir": "E:\\LuciaAPL\\env",
   "recursion_limit": 9999,
   "version": "1.0",
   "color_scheme": {

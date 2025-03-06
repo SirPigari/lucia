@@ -86,6 +86,7 @@ class Interpreter:
     def __init__(self, config):
         self.variables = {
             "print": b_classes.Function(is_builtin=True, function=b_functions.print, name="print"),
+            "styledprint": b_classes.Function(is_builtin=True, function=b_functions.styled_print, name="styledprint"),
             "input": b_classes.Function(is_builtin=True, function=b_functions.input, name="input"),
             "len": b_classes.Function(is_builtin=True, function=b_functions.len, name="len"),
             "int": b_classes.Function(is_builtin=True, function=b_functions.int, name="int"),
@@ -204,6 +205,7 @@ class Interpreter:
             "WHILE": self.handle_while_loop,
             "WITH": self.handle_with,
             "IMPORT": self.handle_import,
+            "TRY": self.handle_try,
 
             # OBJECTS
             "PROPERTY": self.handle_property,
@@ -348,9 +350,23 @@ class Interpreter:
     def handle_variable_declaration(self, statement):
         type = self.evaluate(statement["variable_type"])
         value = self.evaluate(statement["value"])
+        is_final = statement["is_final"]
         self.check_type(type)
-        self.debug_log(f"<Variable '{statement['name']}' declared.>")
-        self.variables[statement["name"]] = b_classes.Variable(statement["name"], value)
+        if statement["name"] in self.variables:
+            var = self.variables[statement["name"]]
+            if isinstance(var, b_classes.Variable):
+                if var.modifiers["is_final"]:
+                    raise PermissionError(f"Variable '{statement["name"]}' is final and cannot be re-declared.")
+            elif isinstance(var, b_classes.Function):
+                if var.modifiers["is_final"]:
+                    raise PermissionError(f"Function '{statement["name"]}' is final and cannot be re-declared.")
+        if value:
+            if not self.check_type(get_type(value), type):
+                raise TypeError(f"Expected type '{type}', but got '{get_type(value)}'")
+            self.debug_log(f"<Variable '{statement['name']}' declared with value {repr(value)}.>")
+        else:
+            self.debug_log(f"<Variable '{statement['name']}' declared.>")
+        self.variables[statement["name"]] = b_classes.Variable(statement["name"], value, {"is_final": is_final}, type_=type)
         return self.variables[statement["name"]]
 
     def handle_variable(self, statement):
@@ -365,14 +381,25 @@ class Interpreter:
 
     def handle_assignment(self, statement):
         name = statement["name"]
-        if name not in self.variables:
-            self.variables[name] = b_classes.Variable(name, self.evaluate(statement["value"]))
+        if statement["name"] in self.variables:
+            var = self.variables[statement["name"]]
+            if isinstance(var, b_classes.Variable):
+                if var.modifiers["is_final"]:
+                    raise PermissionError(f"Variable '{statement["name"]}' is final and cannot be re-assign.")
+            elif isinstance(var, b_classes.Function):
+                if var.modifiers["is_final"]:
+                    raise PermissionError(f"Function '{statement["name"]}' is final and cannot be re-assign.")
         value = self.evaluate(statement["value"])
-        self.debug_log(f"<Variable '{name}' assigned to {value}>")
+        if name not in self.variables:
+            self.variables[name] = b_classes.Variable(name, value, {"is_final": False})
         if isinstance(self.variables[name], b_classes.Variable):
+            if not self.check_type(get_type(value), self.variables[name].type):
+                raise TypeError(f"Expected type '{self.variables[name].type}', but got '{get_type(value)}'")
+            self.debug_log(f"<Variable '{name}' assigned to {repr(value)}.>")
             self.variables[name].value = value
         else:
-            self.variables[name] = b_classes.Variable(name, value)
+            self.debug_log(f"<Variable '{name}' assigned to {repr(value)}.>")
+            self.variables[name] = b_classes.Variable(name, value, {"is_final": False})
         return self.variables[name]
 
     def handle_operation(self, statement):
@@ -614,7 +641,10 @@ class Interpreter:
                         elif isinstance(self.variables[v], b_classes.Function):
                             if self.variables[v].is_builtin:
                                 variables_to_globals[v] = self.variables[v].function
+                        elif isinstance(self.variables[v], Exception):
+                            variables_to_globals[v] = self.variables[v]
                         else:
+                            self.debug_log(f"<Object '{v}' is not supported. {type(self.variables[v])}>")
                             raise TypeError(f"Object '{v}' is not supported.")
                     globals_ = {**self.variables, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math, "random": random}
                     locals_ = {}
@@ -641,6 +671,19 @@ class Interpreter:
             if closest_match:
                 raise ImportError(f"No module named '{original_module_name}'. Did you mean: '{closest_match}'?")
             raise ImportError(f"No module named '{original_module_name}'.")
+
+    def handle_try(self, statement):
+        try:
+            self.interpret(statement["body"])
+        except b_exceptions.LuciaException as e:
+            self.debug_log(f"<Exception caught: {repr(e)}>")
+            self.variables[statement["exception_variable"]] = e
+            self.interpret(statement["catch_body"])
+        except Exception as e:
+            self.debug_log(f"<Exception caught: {repr(e)}>")
+            wrapped_exception = b_exceptions.WrappedException(e)
+            self.variables[statement["exception_variable"]] = wrapped_exception
+            self.interpret(statement["catch_body"])
 
     def handle_property(self, statement):
         if not statement["object_name"] in self.variables:

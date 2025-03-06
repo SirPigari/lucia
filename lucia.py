@@ -6,14 +6,20 @@ import time
 import env
 import warnings
 
+WORKING_DIR = os.path.dirname(__file__)
+
 if hasattr(sys, 'frozen'):
     sys.path += [os.path.abspath(sys._MEIPASS)]
+    os.chdir(os.path.dirname(os.path.abspath(sys.executable)))
+    WORKING_DIR = os.path.dirname(os.path.abspath(sys.executable))
     if os.getcwd().endswith('bin'):
         os.chdir(os.path.abspath("../../"))
+        WORKING_DIR = os.path.abspath(os.path.join(WORKING_DIR, "..\\..\\"))
     else:
-        os.chdir(os.path.dirname(__file__))
+        os.chdir(WORKING_DIR)
 
-sys.path += [os.path.dirname(__file__), os.path.join(os.path.dirname(__file__), 'env')]
+os.chdir(WORKING_DIR)
+sys.path += [WORKING_DIR, os.path.join(WORKING_DIR, 'env')]
 
 import interpreter
 import pparser
@@ -86,7 +92,7 @@ def execute_file(file_path, exit=True):
     interpreter_.interpret(parser.statements)
 
 def activate():
-    os.chdir(os.path.dirname(__file__))
+    os.chdir(WORKING_DIR)
     os.system(".\\env\\activate.py")
 
 def handle_exception(exception, file_name, exit=True):
@@ -98,7 +104,7 @@ def handle_exception(exception, file_name, exit=True):
     if exit:
         sys.exit(1)
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'env', 'config.json')
+CONFIG_PATH = os.path.join(WORKING_DIR, 'env', 'config.json')
 with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
     try:
         config = json.load(config_file)
@@ -109,7 +115,7 @@ with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
 color_map = config.get('color_scheme', {})
 FILE_PATH = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
 
-sys.path += [CONFIG_PATH, config.get('home_dir', os.path.join(os.path.dirname(__file__), 'env'))]
+sys.path += [CONFIG_PATH, config.get('home_dir', os.path.join(WORKING_DIR, 'env'))]
 sys.path = list(dict.fromkeys(sys.path))
 
 recursion_limit = config.get('recursion_limit', 9999)
@@ -124,13 +130,13 @@ PLACEHOLDER = object()
 
 check_config()
 
-expected_env = os.path.join(os.path.dirname(__file__), 'env')
+expected_env = os.path.join(WORKING_DIR, 'env')
 if config.get('home_dir', PLACEHOLDER) != expected_env:
     if config.get("moded", False):
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is not activated. Use 'env\\activate.py' to activate the environment. Please run the file again.\033[0m")
         activate()
 
-os.chdir(config.get('home_dir', os.path.dirname(__file__)))
+os.chdir(config.get('home_dir', WORKING_DIR))
 
 
 if len(sys.argv) > 1:
@@ -144,7 +150,7 @@ if len(sys.argv) > 1:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Config file path: {CONFIG_PATH}\033[0m")
         sys.exit(0)
     if "--home" in sys.argv:
-        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Home directory: {config.get('home_dir', os.path.join(os.path.dirname(__file__), 'env'))}\033[0m")
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Home directory: {config.get('home_dir', os.path.join(WORKING_DIR, 'env'))}\033[0m")
         sys.exit(0)
     if "--timer" in sys.argv:
         start_time = time.time()
@@ -155,7 +161,7 @@ if len(sys.argv) > 1:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Using old interpreter.\nRemove '--use-old-interpreter' to use the default.\n\033[0m")
         import env.assets.interpreter_old as interpreter
     if "--test-all-tests" in sys.argv:
-        path = os.path.join(config.get('home_dir', os.path.dirname(__file__)), 'Docs\\tests')
+        path = os.path.join(config.get('home_dir', WORKING_DIR), 'Docs\\tests')
         lucia_ext = config.get('lucia_file_extensions', [".lucia", ".luc", ".lc", ".l"])
         for file in os.listdir(path):
             if "."+file.rsplit(os.path.extsep, 1)[-1] in lucia_ext:

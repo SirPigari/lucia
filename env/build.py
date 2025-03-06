@@ -8,13 +8,13 @@ import pathspec
 
 
 def kill_process(process_name):
-	for proc in psutil.process_iter(attrs=['pid', 'name']):
-		if proc.info['name'] == process_name:
-			try:
-				proc.kill()
-				print(f"Killed process: {process_name}")
-			except Exception as e:
-				print(f"Failed to kill {process_name}: {e}")
+    for proc in psutil.process_iter(attrs=['pid', 'name']):
+        if proc.info['name'] == process_name:
+            try:
+                proc.kill()
+                print(f"Killed process: {process_name}")
+            except Exception as e:
+                print(f"Failed to kill {process_name}: {e}")
 
 
 def delete_folder_with_progress(folder_path):
@@ -35,14 +35,17 @@ def delete_folder_with_progress(folder_path):
         shutil.rmtree(folder_path)
     os.makedirs(folder_path)
 
+
 os.chdir(os.path.dirname(__file__))
 os.chdir("../")
 
 BUILD_PATH = os.path.abspath("env/build").replace("\\", "/")
 BIN_PATH = os.path.abspath("env/bin").replace("\\", "/")
 INSTALLER_ICON = os.path.abspath("env/assets/installer.ico").replace("\\", "/")
+INSTALLER_ICON2 = os.path.abspath("env/assets/installer2.ico").replace("\\", "/")
 DATA_PATH = os.path.abspath(".").replace("\\", "/")
 FILE = os.path.abspath("lucia.py").replace("\\", "/")
+FILE2 = os.path.abspath("installer.py").replace("\\", "/")
 EXE_PATH = os.path.join(BIN_PATH, "lucia.exe").replace("\\", "/")
 
 kill_process("lucia.exe")
@@ -56,39 +59,42 @@ print(DATA_PATH)
 print(FILE)
 print(EXE_PATH)
 
-
-paths = [
-    "env\\Lib",
-	"env\\activate.py",
-	"env\\config.json",
-	"env\\build.py",
-	"env\\assets\\installer.ico",
-    "lucia.py",
-    "interpreter.py",
-    "pparser.py",
-    "lexer.py",
-    "LICENSE",
-    "installer.py",
-]
-
-TEMP_PATH = "temp/"
-os.makedirs(TEMP_PATH, exist_ok=True)
-for p in paths:
-	shutil.copy(p, os.path.join(TEMP_PATH, p))
-
-for root, dirs, files in os.walk(TEMP_PATH):
-	for file in files:
-		if file.endswith(".pyc"):
-			os.remove(os.path.join(root, file))
-
-PATHS = " ".join([f"--add-data \"{os.path.abspath(p).replace('\\', '/')}\"{os.pathsep}{p}" for p in paths])
-
-
-command = (f"python -m PyInstaller --noconfirm --noconsole --onefile --clean "
-	f"--icon={INSTALLER_ICON} {PATHS} "
-	f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
-	f"--specpath \"{BUILD_PATH}\" \"{FILE}\"")
+command = (f"python -m PyInstaller --noconfirm --onefile --clean "
+           f"--icon={INSTALLER_ICON} "
+           f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
+           f"--specpath \"{BUILD_PATH}\" \"{FILE}\""
+           )
 
 print(command)
 
 os.system(command)
+
+installer_command = (f"python -m PyInstaller --noconfirm --onefile --clean "
+                     f"--icon={INSTALLER_ICON2} "
+                     f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
+                     f"--specpath \"{BUILD_PATH}\" \"{FILE2}\""
+                     )
+
+print(installer_command)
+os.system(installer_command)
+
+print("Build successful.")
+
+os.chdir(DATA_PATH)
+TEST_PATH = os.path.abspath("tests").replace("\\", "/")
+TEST_FILES = os.listdir(TEST_PATH)
+
+print("Starting tests...")
+print(TEST_FILES)
+print(TEST_PATH)
+for file in TEST_FILES:
+    if os.path.isfile(f"tests/{file}"):
+        os.system(f"{EXE_PATH} {os.path.abspath(f"tests/{file}").replace('\\', '/')} --timer")
+
+print("Tests completed.")
+
+print("Cleaning up build folder...")
+delete_folder_with_progress(BUILD_PATH)
+
+print("Starting lucia.exe...")
+os.system(EXE_PATH)

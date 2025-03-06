@@ -35,6 +35,9 @@ class Parser:
         if self.token == ('IDENTIFIER', 'if'):
             return self.parse_if_statement()
 
+        if self.token == ('IDENTIFIER', 'try'):
+            return self.parse_try_statement()
+
         if self.token == ('IDENTIFIER', 'object'):
             return self.parse_object()
 
@@ -206,7 +209,16 @@ class Parser:
         self.next()
         self.next()
         variable_type = self.parse_type()
+        is_final = False
         value = {"type": "BOOLEAN", "value": "null", "literal_value": None}
+        if self.token == ('OPERATOR', '|'):
+            self.next()
+            while self.token[1] in ("final", "mutable"):
+                if self.token[1] == "final":
+                    is_final = True
+                if self.token[1] == "mutable":
+                    is_final = False
+                self.next()
         if self.token == ('OPERATOR', '='):
             self.next()
             value = self.parse_expression()
@@ -214,7 +226,8 @@ class Parser:
             "type": "VARIABLEDECLARATION",
             "name": name,
             "value": value,
-            "variable_type": variable_type
+            "variable_type": variable_type,
+            "is_final": is_final
         }
 
     def parse_function_declaration(self):
@@ -590,4 +603,33 @@ class Parser:
             "with": with_,
             "as": as_,
             "body": body
+        }
+
+    def parse_try_statement(self):
+        self.check_for('IDENTIFIER', 'try')
+        self.next()
+        self.check_for('SEPARATOR', ':')
+        self.next()
+        body = self.parse_body()
+        self.check_for('IDENTIFIER', 'end')
+        self.next()
+        self.check_for('IDENTIFIER', 'catch')
+        self.next()
+        self.check_for('SEPARATOR', '(')
+        self.next()
+        self.check_for('IDENTIFIER')
+        except_name = self.token[1]
+        self.next()
+        self.check_for('SEPARATOR', ')')
+        self.next()
+        self.check_for('SEPARATOR', ':')
+        self.next()
+        except_body = self.parse_body()
+        self.check_for('IDENTIFIER', 'end')
+        self.next()
+        return {
+            "type": "TRY",
+            "body": body,
+            "exception_variable": except_name,
+            "catch_body": except_body
         }

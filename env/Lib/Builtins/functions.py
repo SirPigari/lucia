@@ -1,13 +1,12 @@
 import os
 import sys
+import re
 
 str_ = str
 int_ = int
 float_ = float
 range_ = range
 len_ = len
-
-import sys
 
 def print(*args, end='\n'):
     args2 = []
@@ -29,6 +28,46 @@ def print(*args, end='\n'):
 def input(prompt=''):
     sys.stdout.write(prompt)
     return sys.stdin.readline().strip()
+
+
+def hex_to_ansi(hex_color, is_bg=False):
+    if not hex_color or hex_color.lower() == "reset":
+        return "\033[0m"
+
+    match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
+    if not match:
+        return "\033[0m"
+
+    r, g, b = tuple(int_(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
+
+    if is_bg:
+        return f"\033[48;2;{r};{g};{b}m"  # Background color
+    return f"\033[38;2;{r};{g};{b}m"  # Foreground color
+
+
+def styled_print(text, fg_color, *, bg_color=None, bold=False, underline=False, italic=False, strikethrough=False, blink=False, reverse=False, link=None, end="\n"):
+    style = hex_to_ansi(fg_color)
+    if bg_color:
+        style += hex_to_ansi(bg_color, is_bg=True)
+
+    if bold:
+        style += "\033[1m"
+    if italic:
+        style += "\033[3m"
+    if underline:
+        style += "\033[4m"
+    if blink:
+        style += "\033[5m"
+    if reverse:
+        style += "\033[7m"
+    if strikethrough:
+        style += "\033[9m"
+
+    if link:
+        text = f"[{text}]({link})"
+
+    reset = "\033[0m"
+    print(f"{style}{text}{reset}", end=end)
 
 def len(obj):
     return len_(obj)

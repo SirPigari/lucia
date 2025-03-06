@@ -183,9 +183,13 @@ class Object:
 
 
 class Variable:
-    def __init__(self, name, value=None):
+    def __init__(self, name, value=None, mods=None, type_="any"):
         self.name = name
         self.value = value
+        self.type = type_
+        if not mods:
+            mods = {}
+        self.modifiers = mods
 
     def __str__(self):
         return str(self.value)
