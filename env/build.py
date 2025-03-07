@@ -59,7 +59,7 @@ print(DATA_PATH)
 print(FILE)
 print(EXE_PATH)
 
-command = (f"python -m PyInstaller --noconfirm --onefile --clean "
+command = (f"python -m PyInstaller --noconfirm --onefile --clean --log-level TRACE "
            f"--icon={INSTALLER_ICON} "
            f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
            f"--specpath \"{BUILD_PATH}\" \"{FILE}\""
@@ -69,8 +69,8 @@ print(command)
 
 os.system(command)
 
-installer_command = (f"python -m PyInstaller --noconfirm --onefile --clean "
-                     f"--icon={INSTALLER_ICON2} "
+installer_command = (f"python -m PyInstaller --noconfirm --onefile --clean --log-level TRACE --uac-admin "
+                     f"--icon={INSTALLER_ICON2} --name lucia_installer "
                      f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
                      f"--specpath \"{BUILD_PATH}\" \"{FILE2}\""
                      )

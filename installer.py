@@ -217,7 +217,6 @@ if __name__ == "__main__":
             print("Exiting...")
             sys.exit()
         else:
-            print("Invalid choice. Exiting...")
-            sys.exit()
+            print("Invalid choice. ")
         print("---------------------------")
         print("\n")

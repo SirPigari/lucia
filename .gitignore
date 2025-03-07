@@ -13,4 +13,4 @@ tests/
 env/assets/fake_temp.zip
 env/assets/python_installer.exe
 env/build/
-env/bin/installer.exe
+env/bin/lucia_installer.exe
