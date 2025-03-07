@@ -188,7 +188,7 @@ class Variable:
         self.value = value
         self.type = type_
         if not mods:
-            mods = {}
+            mods = {"is_final": False}
         self.modifiers = mods
 
     def __str__(self):

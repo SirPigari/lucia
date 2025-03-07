@@ -17,6 +17,12 @@ os.system("cls" if platform.system() == "Windows" else "clear")
 os.system(f"title Lucia Installer - {VERSION}")
 
 
+self_path = os.path.abspath(__file__)
+
+if hasattr(sys, 'frozen'):
+    self_path = os.path.abspath(sys.executable)
+
+
 FAKE_TEMP = "" # os.path.abspath("env/assets/fake_temp.zip")
 
 
@@ -32,30 +38,33 @@ def add_to_path(bin_path):
             except FileNotFoundError:
                 current_path = ""
 
-        if bin_path in current_path:
-            print("BIN_PATH is already in user PATH.")
-            return
+        paths = current_path.split(";") if current_path else []
+        paths = [p for p in paths if p and p != bin_path]
+        paths.insert(0, bin_path)
 
-        new_path_value = f"{current_path};{bin_path}" if current_path else bin_path
+        new_path_value = ";".join(paths)
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_key, 0, winreg.KEY_WRITE) as key:
             winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_path_value)
 
-        print(f"Successfully added {bin_path} to user PATH. Restart your terminal for changes to take effect.")
+        print(
+            f"Successfully added {bin_path} to the top of user PATH. Restart your terminal for changes to take effect.")
 
     else:
         shell_rc_file = os.path.expanduser("~/.bashrc")
-        export_line = f'export PATH="{bin_path}:$PATH"\n'
+        export_line = f'export PATH="{bin_path}:$PATH"'
 
-        if os.path.exists(shell_rc_file):
-            with open(shell_rc_file, "r") as f:
-                if export_line in f.readlines():
-                    print("BIN_PATH is already in user PATH.")
-                    return
+        with open(shell_rc_file, "r") as f:
+            lines = f.readlines()
 
-        with open(shell_rc_file, "a") as f:
-            f.write(f"\n# Added by script\n{export_line}")
+        lines = [line for line in lines if bin_path not in line]
 
-        print(f"Successfully added {bin_path} to user PATH. Restart your shell or run 'source {shell_rc_file}'.")
+        lines.insert(0, f"\n# Added by script\n{export_line}\n")
+
+        with open(shell_rc_file, "w") as f:
+            f.writelines(lines)
+
+        print(
+            f"Successfully added {bin_path} to the top of user PATH. Restart your shell or run 'source {shell_rc_file}'.")
 
 
 def install():
@@ -80,7 +89,7 @@ def install():
                 with open(zip_file_path, "wb") as file:
                     with tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading", dynamic_ncols=True,
                               file=sys.stdout) as pbar:
-                        for chunk in response.iter_content(chunk_size=8192):
+                        for chunk in response.iter_content(chunk_size=1024):
                             file.write(chunk)
                             pbar.update(len(chunk))
         else:
@@ -115,7 +124,7 @@ def install():
 
         shutil.rmtree(temp_extract_dir)
     if not os.path.exists(FAKE_TEMP):
-        os.remove(zip_file_path)  # Only remove the real downloaded file
+        os.remove(zip_file_path)
     print("Download, extraction, and cleanup complete.")
 
     ENV_PATH = os.path.join(INSTALL_PATH, "env")

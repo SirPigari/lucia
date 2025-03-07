@@ -13,10 +13,15 @@ import math
 import random
 import builtins
 import warnings
+import hashlib
+import json
 
 false = b_classes.Boolean(False)
 true = b_classes.Boolean(True)
 null = b_classes.Boolean(None)
+
+def hash_object(obj):
+    return hashlib.sha256(str(obj).encode()).hexdigest()
 
 def find_closest_match(word_list, target_word):
     if not word_list:
@@ -102,6 +107,7 @@ class Interpreter:
             "keywords": b_classes.Function(is_builtin=True, function=b_functions.keywords, name="keywords"),
             "version": b_classes.Function(is_builtin=True, function=lambda: b_functions.version(self.config), name="version"),
             "clear": b_classes.Function(is_builtin=True, function=b_functions.clear, name="clear"),
+            "signature": b_classes.Function(is_builtin=True, function=self.signature, name="signature"),
             "File": b_classes.Object(is_builtin=True, object=b_classes.File, name="File"),
             "LuciaException": b_classes.Object(is_builtin=True, object=b_exceptions.LuciaException, name="LuciaException"),
             "ListPatternRecognitionWarning": b_classes.Object(is_builtin=True, object=b_exceptions.ListPatterRecognitionWarning, name="ListPatternRecognitionWarning"),
@@ -121,6 +127,11 @@ class Interpreter:
             raise RecursionError(f"Maximum recursion depth exceeded. (Max: {max_recursion}, Current: {stack_len})")
         if stack_len == max_recursion:
             warn("Recursion limit reached.", b_exceptions.RecursionLimitWarning)
+
+    def signature(self, variable):
+        hash = hash_object(variable)
+        return hash
+
 
     def debug_log(self, *args):
         if self.config.get('debug', False):
@@ -289,6 +300,8 @@ class Interpreter:
             self.check_stack()
             ret = function.function(*pos_args, **named_args)
             self.stack.pop()
+            if ret is not None:
+                self.debug_log(f"<Function {name} returned {repr(ret)}>")
             return ret
 
         body = function.body

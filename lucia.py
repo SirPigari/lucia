@@ -24,6 +24,14 @@ sys.path += [WORKING_DIR, os.path.join(WORKING_DIR, 'env')]
 import interpreter
 import pparser
 import lexer
+1
+def clear_exit(code=0):
+    globals_copy = globals().copy()
+    for var in globals_copy:
+        if var not in ('sys', 'clear_exit'):
+            del globals()[var]
+
+    sys.exit(code)
 
 
 def hex_to_ansi(hex_color):
@@ -102,7 +110,7 @@ def handle_exception(exception, file_name, exit=True):
     elif isinstance(exception, Warning):
         print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}-> File '{file_name}', warning:\n{exception_type}: {exception}\33[0m")
     if exit:
-        sys.exit(1)
+        clear_exit(1)
 
 CONFIG_PATH = os.path.join(WORKING_DIR, 'env', 'config.json')
 with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
@@ -111,7 +119,7 @@ with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
     except json.JSONDecodeError:
         activate()
         print(f"{hex_to_ansi('#F44350')}Config file is corrupted. Environment has been activated.\033[0m")
-        sys.exit(1)
+        clear_exit(1)
 color_map = config.get('color_scheme', {})
 FILE_PATH = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
 
@@ -142,21 +150,21 @@ os.chdir(config.get('home_dir', WORKING_DIR))
 if len(sys.argv) > 1:
     if "--help" in sys.argv or "-h" in sys.argv:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Lucia-{config.get('version', '(version unknown)')} Interpreter\nUsage: lucia.py [file_path]\n\033[0m")
-        sys.exit(0)
+        clear_exit(0)
     if "--version" in sys.argv or "-v" in sys.argv:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Lucia-{config.get('version', '(version unknown)')}\033[0m")
-        sys.exit(0)
+        clear_exit(0)
     if "--config" in sys.argv:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Config file path: {CONFIG_PATH}\033[0m")
-        sys.exit(0)
+        clear_exit(0)
     if "--home" in sys.argv:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Home directory: {config.get('home_dir', os.path.join(WORKING_DIR, 'env'))}\033[0m")
-        sys.exit(0)
+        clear_exit(0)
     if "--timer" in sys.argv:
         start_time = time.time()
         execute_file(FILE_PATH)
         print(f"\n{hex_to_ansi(color_map.get('info', '#D10CFF'))}Execution time: {time.time() - start_time:.4f} seconds\033[0m")
-        sys.exit(0)
+        clear_exit(0)
     if "--use-old-interpreter" in sys.argv:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Using old interpreter.\nRemove '--use-old-interpreter' to use the default.\n\033[0m")
         import env.assets.interpreter_old as interpreter
@@ -173,7 +181,7 @@ if len(sys.argv) > 1:
             else:
                 print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}Skipping test '{file}'...\n\033[0m")
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}All tests have been executed.\033[0m")
-        sys.exit(0)
+        clear_exit(0)
 
 if FILE_PATH:
     if config.get("use_lucia_traceback", True):
@@ -182,7 +190,7 @@ if FILE_PATH:
         except (RecursionError, Warning, RuntimeError, Exception) as e:
             handle_exception(e, FILE_PATH)
         except SystemExit:
-            sys.exit(0)
+            clear_exit(0)
     else:
         execute_file(FILE_PATH)
 else:
@@ -198,4 +206,4 @@ else:
                 break
         else:
             input_exec()
-    sys.exit(0)
+    clear_exit()
