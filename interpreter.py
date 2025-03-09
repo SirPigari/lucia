@@ -78,17 +78,9 @@ def _handle_invalid_type(type_, valid_types):
         raise TypeError(f"Type '{type_}' is not supported. Did you mean: '{closest_match}'?")
     raise TypeError(f"Type '{type_}' is not supported.")
 
-def warn(message, category, stacklevel=3):
-    if config.get('warnings', True):
-        if config.get('use_lucia_traceback', True):
-            print(
-                f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}-> File '{__file__}', warning:\n{category}: {message}\033[0m")
-        else:
-            warnings.warn(message, category, stacklevel=stacklevel)
-
 
 class Interpreter:
-    def __init__(self, config):
+    def __init__(self, config, filename=None):
         self.variables = {
             "print": b_classes.Function(is_builtin=True, function=b_functions.print, name="print"),
             "styledprint": b_classes.Function(is_builtin=True, function=b_functions.styled_print, name="styledprint"),
@@ -115,10 +107,25 @@ class Interpreter:
             "TestContext": b_classes.Object(is_builtin=True, object=b_classes.TestContext, name="TestContext"),
         }
 
+        self.variables.update({
+            "vars": b_classes.Variable(type_="any", name="vars", value=b_classes.Map(self.get_variables)),
+        })
+
+        self.filename = filename
+        if not filename:
+            self.filename = "<stdin>"
         self.config = config
         self.return_value = b_classes.Boolean(None)
         self.is_returning = False
         self.stack = []
+
+    def warn(self, message, category, stacklevel=3):
+        if self.config.get('warnings', True):
+            if self.config.get('use_lucia_traceback', True):
+                print(f"{hex_to_ansi(self.config.get("color_scheme", {}).get('warning', '#FFC107'))}-> File '{self.filename}' warning:\n{str(category.__name__)}: {message}\33[0m")
+                return
+            else:
+                warnings.warn(message, category, stacklevel=stacklevel)
 
     def check_stack(self):
         stack_len = len(self.stack)
@@ -126,11 +133,26 @@ class Interpreter:
         if stack_len > max_recursion:
             raise RecursionError(f"Maximum recursion depth exceeded. (Max: {max_recursion}, Current: {stack_len})")
         if stack_len == max_recursion:
-            warn("Recursion limit reached.", b_exceptions.RecursionLimitWarning)
+            self.warn("Recursion limit reached.", b_exceptions.RecursionLimitWarning)
 
     def signature(self, variable):
         hash = hash_object(variable)
         return hash
+
+    @property
+    def get_variables(self):
+        variables = self.variables
+        vars = {}
+        for var in variables:
+            if isinstance(variables[var], b_classes.Variable):
+                vars[var] = variables[var].value
+            elif isinstance(variables[var], b_classes.Object):
+                vars[var] = variables[var]._data
+            elif isinstance(variables[var], b_classes.Function):
+                vars[var] = variables[var].function
+            else:
+                vars[var] = variables[var]
+        return vars
 
 
     def debug_log(self, *args):
@@ -452,21 +474,37 @@ class Interpreter:
         elif operator == "+=":
             if not isinstance(left, b_classes.Variable):
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
+            if left.modifiers["is_final"]:
+                raise PermissionError(f"Variable '{left.name}' is final and cannot be re-assigned.")
+            if not self.check_type(get_type(left.value), get_type(right)):
+                raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value += right
             return left
         elif operator == "-=":
             if not isinstance(left, b_classes.Variable):
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
+            if left.modifiers["is_final"]:
+                raise PermissionError(f"Variable '{left.name}' is final and cannot be re-assigned.")
+            if not self.check_type(get_type(left.value), get_type(right)):
+                raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value -= right
             return left
         elif operator == "*=":
             if not isinstance(left, b_classes.Variable):
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
+            if left.modifiers["is_final"]:
+                raise PermissionError(f"Variable '{left.name}' is final and cannot be re-assigned.")
+            if not self.check_type(get_type(left.value), get_type(right)):
+                raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value *= right
             return left
         elif operator == "/=":
             if not isinstance(left, b_classes.Variable):
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
+            if left.modifiers["is_final"]:
+                raise PermissionError(f"Variable '{left.name}' is final and cannot be re-assigned.")
+            if not self.check_type(get_type(left.value), get_type(right)):
+                raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value /= right
             return left
         else:
@@ -518,8 +556,9 @@ class Interpreter:
                     return b_classes.List(result)
 
             if self.config.get("warnings", True):
-                warnings.warn(f"List pattern was not recognized: {pattern_values}",
+                self.warn(f"List pattern was not recognized: {pattern_values}",
                               b_exceptions.ListPatterRecognitionWarning)
+                return b_classes.List(pattern_values + [end])
             else:
                 return b_classes.List(pattern_values + [end])
         elif statement["iterable_type"] == "MAP":

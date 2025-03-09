@@ -24,7 +24,8 @@ sys.path += [WORKING_DIR, os.path.join(WORKING_DIR, 'env')]
 import interpreter
 import pparser
 import lexer
-1
+
+
 def clear_exit(code=0):
     globals_copy = globals().copy()
     for var in globals_copy:
@@ -83,20 +84,26 @@ def input_exec():
     interpreter_.interpret(parser.statements)
 
 def execute_file(file_path, exit=True):
-    global interpreter, pparser, lexer
-    with open(file_path, 'r', encoding='utf-8') as file:
-        code = file.read()
-    tokens = lexer.lexer(code, include_comments=config.get('print_comments', False))
-    if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
-        debug_log(f"Tokens generated: {tokens}")
-    if not tokens:
-        debug_log(f"Statements generated: []")
-        return
-    parser = pparser.Parser(tokens)
-    parser.parse()
-    if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
-        debug_log(f"Statements generated: {parser.statements}")
-    interpreter_ = interpreter.Interpreter(config)
+    try:
+        global interpreter, pparser, lexer
+        with open(file_path, 'r', encoding='utf-8') as file:
+            code = file.read()
+        tokens = lexer.lexer(code, include_comments=config.get('print_comments', False))
+        if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
+            debug_log(f"Tokens generated: {tokens}")
+        if not tokens:
+            debug_log(f"Statements generated: []")
+            return
+        parser = pparser.Parser(tokens)
+    except Exception as e:
+        raise RuntimeError(f"Failed to execute file '{file_path}'. Error: {e}")
+    try:
+        parser.parse()
+        if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
+            debug_log(f"Statements generated: {parser.statements}")
+        interpreter_ = interpreter.Interpreter(config, file_path)
+    except Exception as e:
+        raise RuntimeError(f"Failed to parse file '{file_path}'. Error: {e}")
     interpreter_.interpret(parser.statements)
 
 def activate():
@@ -104,13 +111,26 @@ def activate():
     os.system(".\\env\\activate.py")
 
 def handle_exception(exception, file_name, exit=True):
-    exception_type = type(exception).__name__
-    if isinstance(exception, Exception):
-        print(f"{hex_to_ansi(color_map.get('exception', '#F44350'))}-> File '{file_name}', got traceback:\n{exception_type}: {exception}\33[0m")
-    elif isinstance(exception, Warning):
-        print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}-> File '{file_name}', warning:\n{exception_type}: {exception}\33[0m")
+    if isinstance(exception, Warning):
+        print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}-> File '{file_name}' warning:\n{exception}\33[0m")
+        return
+    else:
+        print(f"{hex_to_ansi(color_map.get('exception', '#F44350'))}-> File '{file_name}' got traceback:\n{exception}\33[0m")
     if exit:
         clear_exit(1)
+
+def handle_file_exec(file_path):
+    if config.get("use_lucia_traceback", True):
+        try:
+            execute_file(file_path)
+        except SystemExit:
+            clear_exit(0)
+        except Warning as w:
+            handle_exception(w, file_path, exit=False)
+        except Exception as e:
+            handle_exception(e, file_path)
+    else:
+        execute_file(file_path)
 
 CONFIG_PATH = os.path.join(WORKING_DIR, 'env', 'config.json')
 with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
@@ -162,7 +182,7 @@ if len(sys.argv) > 1:
         clear_exit(0)
     if "--timer" in sys.argv:
         start_time = time.time()
-        execute_file(FILE_PATH)
+        handle_file_exec(FILE_PATH)
         print(f"\n{hex_to_ansi(color_map.get('info', '#D10CFF'))}Execution time: {time.time() - start_time:.4f} seconds\033[0m")
         clear_exit(0)
     if "--use-old-interpreter" in sys.argv:
@@ -175,7 +195,7 @@ if len(sys.argv) > 1:
             if "."+file.rsplit(os.path.extsep, 1)[-1] in lucia_ext:
                 print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Running test '{file}'...\n\033[0m")
                 try:
-                    execute_file(os.path.join(path, file), exit=False)
+                    handle_file_exec(os.path.join(path, file), exit=False)
                 except Exception as e:
                     print(f"{hex_to_ansi(color_map.get('exception', '#F44350'))}Test '{file}' failed with error:\n{type(e).__name__}: {e}\n\033[0m")
             else:
@@ -184,15 +204,8 @@ if len(sys.argv) > 1:
         clear_exit(0)
 
 if FILE_PATH:
-    if config.get("use_lucia_traceback", True):
-        try:
-            execute_file(FILE_PATH)
-        except (RecursionError, Warning, RuntimeError, Exception) as e:
-            handle_exception(e, FILE_PATH)
-        except SystemExit:
-            clear_exit(0)
-    else:
-        execute_file(FILE_PATH)
+    handle_file_exec(FILE_PATH)
+    clear_exit(0)
 else:
     interpreter_ = interpreter.Interpreter(config)
     print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Lucia-{config.get('version', '(version unknown)')} REPL\nType 'exit()' to exit or 'help()' for help.\033[0m")
@@ -200,10 +213,10 @@ else:
         if config.get('use_lucia_traceback', True):
             try:
                 input_exec()
-            except (RecursionError, Warning, RuntimeError, Exception) as e:
-                handle_exception(e, "<stdin>", exit=False)
             except SystemExit:
                 break
+            except (Exception, Warning) as e:
+                handle_exception(e, "<stdin>", exit=False)
         else:
             input_exec()
     clear_exit()

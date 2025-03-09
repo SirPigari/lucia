@@ -1,3 +1,23 @@
+def get_type_default(type_):
+    if type_ == "int":
+        return {"type": "NUMBER", "value": 0}
+    if type_ == "float":
+        return {"type": "NUMBER", "value": 0.0}
+    if type_ == "string":
+        return {"type": "STRING", "value": ""}
+    if type_ == "bool":
+        return {"type": "BOOLEAN", "value": "false", "literal_value": None}
+    if type_ == "any":
+        return {"type": "BOOLEAN", "value": "null", "literal_value": None}
+    if type_ == "map":
+        return {"type": "ITERABLE", "iterable_type": "MAP", "keys": [], "values": []}
+    if type_ == "list":
+        return {"type": "ITERABLE", "iterable_type": "LIST", "elements": []}
+    if type_ == "list_completion":
+        return {"type": "ITERABLE", "iterable_type": "LIST_COMPLETION", "pattern": [], "end": None}
+    return {"type": "BOOLEAN", "value": "null", "literal_value": None}
+
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -210,7 +230,7 @@ class Parser:
         self.next()
         variable_type = self.parse_type()
         is_final = False
-        value = {"type": "BOOLEAN", "value": "null", "literal_value": None}
+        value = get_type_default(variable_type["name"])
         if self.token == ('OPERATOR', '|'):
             self.next()
             while self.token[1] in ("final", "mutable"):
