@@ -1,3 +1,5 @@
+import decimal
+
 def Literal(__literal):
     if isinstance(__literal, str):
         return Str(__literal)
@@ -188,7 +190,7 @@ class Variable:
         self.value = value
         self.type = type_
         if not mods:
-            mods = {"is_final": False}
+            mods = {"is_final": False, "is_public": True, "is_static": False}
         self.modifiers = mods
 
     def __str__(self):
@@ -374,6 +376,66 @@ class Variable:
         return self.value
 
 
+class Decimal(decimal.Decimal):
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self})"
+
+    def __len__(self):
+        return len(str(self))
+
+    def __declen__(self) -> int:
+        decimals = str(self).split(".")[-1]
+        return len(str(decimals))
+
+    def __add__(self, other):
+        return Decimal(super().__add__(Decimal(other)))
+
+    def __sub__(self, other):
+        return Decimal(super().__sub__(Decimal(other)))
+
+    def __mul__(self, other):
+        return Decimal(super().__mul__(Decimal(other)))
+
+    def __truediv__(self, other):
+        return Decimal(super().__truediv__(Decimal(other)))
+
+    def __floordiv__(self, other):
+        return Decimal(super().__floordiv__(Decimal(other)))
+
+    def __mod__(self, other):
+        return Decimal(super().__mod__(Decimal(other)))
+
+    def __pow__(self, other, modulo=None):
+        return Decimal(super().__pow__(Decimal(other), modulo))
+
+    def __eq__(self, other):
+        return super().__eq__(Decimal(other))
+
+    def __ne__(self, other):
+        return super().__ne__(Decimal(other))
+
+    def __lt__(self, other):
+        return super().__lt__(Decimal(other))
+
+    def __le__(self, other):
+        return super().__le__(Decimal(other))
+
+    def __gt__(self, other):
+        return super().__gt__(Decimal(other))
+
+    def __ge__(self, other):
+        return super().__ge__(Decimal(other))
+
+    def __neg__(self):
+        return Decimal(super().__neg__())
+
+    def __abs__(self):
+        return Decimal(super().__abs__())
+
+    def __float__(self):
+        return float(str(self))
+
+
 class Function:
     def __init__(self, name=None, parameters=None, body=None, mods=None, return_type=None, is_builtin=False, function=None):
         if not name:
@@ -386,6 +448,9 @@ class Function:
         self.is_builtin = is_builtin
         if self.is_builtin:
             self.function = function
+
+    def __call__(self, *args, **kwargs):
+        return self.function(*args, **kwargs)
 
     def __str__(self):
         return f"<function '{self.name}' at {id(self)}>"

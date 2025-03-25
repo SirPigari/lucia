@@ -24,7 +24,7 @@ sys.path += [WORKING_DIR, os.path.join(WORKING_DIR, 'env')]
 import interpreter
 import pparser
 import lexer
-
+from env.Lib.Builtins.exceptions import WrappedException
 
 def clear_exit(code=0):
     globals_copy = globals().copy()
@@ -91,9 +91,9 @@ def execute_file(file_path, exit=True):
         tokens = lexer.lexer(code, include_comments=config.get('print_comments', False))
         if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
             debug_log(f"Tokens generated: {tokens}")
-        if not tokens:
-            debug_log(f"Statements generated: []")
-            return
+            if not tokens:
+                debug_log(f"Statements generated: []")
+                return
         parser = pparser.Parser(tokens)
     except Exception as e:
         raise RuntimeError(f"Failed to execute file '{file_path}'. Error: {e}")
@@ -111,6 +111,7 @@ def activate():
     os.system(".\\env\\activate.py")
 
 def handle_exception(exception, file_name, exit=True):
+    exception = WrappedException(exception)
     if isinstance(exception, Warning):
         print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}-> File '{file_name}' warning:\n{exception}\33[0m")
         return

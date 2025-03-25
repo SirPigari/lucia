@@ -146,6 +146,24 @@ class Parser:
             self.next()
             return {"type": "OPERATION", "left": {"type": "BOOLEAN", "value": "null", "literal_value": None}, "operator": "!", "right": self.parse_expression()}
 
+        if self.token == ('OPERATOR', '-'):
+            self.next()
+            return {"type": "OPERATION", "left": {"type": "NUMBER", "value": 0}, "operator": "-", "right": self.parse_expression()}
+
+        if self.token == ('OPERATOR', '+'):
+            self.next()
+            return {"type": "OPERATION", "left": {"type": "NUMBER", "value": 0}, "operator": "+", "right": self.parse_expression()}
+
+        if self.token == ('OPERATOR', '|'):
+            self.next()
+            n = self.parse_expression()
+            self.check_for('OPERATOR', '|')
+            self.next()
+            return {"type": "OPERATION", "left": {"type": "BOOLEAN", "value": "null", "literal_value": None}, "operator": "abs", "right": n}
+
+        if self.token[0] in ('IDENTIFIER', 'NUMBER', 'STRING', 'BOOLEAN') and self.get_next() and self.get_next() == ('OPERATOR', '|'):
+            return self.parse_operand()
+
         if self.token[0] in ('NUMBER', 'STRING', 'BOOLEAN') and self.get_next() and self.get_next()[0] == 'OPERATOR':
             return self.parse_operation()
 
@@ -230,14 +248,25 @@ class Parser:
         self.next()
         variable_type = self.parse_type()
         is_final = False
+        is_public = True
+        is_static = False
         value = get_type_default(variable_type["name"])
         if self.token == ('OPERATOR', '|'):
             self.next()
-            while self.token[1] in ("final", "mutable"):
+            mods = ("final", "mutable", "public", "private", "static")
+            if self.token[1] not in mods:
+                raise SyntaxError(f"Unexpected variable modifier: {self.token[1]}")
+            while self.token[1] in mods:
                 if self.token[1] == "final":
                     is_final = True
                 if self.token[1] == "mutable":
                     is_final = False
+                if self.token[1] == "public":
+                    is_public = True
+                if self.token[1] == "private":
+                    is_public = False
+                if self.token[1] == "static":
+                    is_static = True
                 self.next()
         if self.token == ('OPERATOR', '='):
             self.next()
@@ -247,7 +276,9 @@ class Parser:
             "name": name,
             "value": value,
             "variable_type": variable_type,
-            "is_final": is_final
+            "is_final": is_final,
+            "is_public": is_public,
+            "is_static": is_static
         }
 
     def parse_function_declaration(self):
@@ -407,7 +438,9 @@ class Parser:
             self.next()
             value = {"type": "BOOLEAN", "value": value_, "literal_value": literal_value}
         else:
-            raise SyntaxError(f"Unexpected token: {self.token}")
+            value = self.parse_expression()
+            self.pos -= 1
+            return value
         self.next()
         return value
 

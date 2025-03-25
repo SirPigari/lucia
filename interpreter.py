@@ -15,6 +15,8 @@ import builtins
 import warnings
 import hashlib
 import json
+import decimal
+import time
 
 false = b_classes.Boolean(False)
 true = b_classes.Boolean(True)
@@ -85,6 +87,7 @@ class Interpreter:
             "print": b_classes.Function(is_builtin=True, function=b_functions.print, name="print"),
             "styledprint": b_classes.Function(is_builtin=True, function=b_functions.styled_print, name="styledprint"),
             "input": b_classes.Function(is_builtin=True, function=b_functions.input, name="input"),
+            "wait": b_classes.Function(is_builtin=True, function=b_functions.wait, name="wait"),
             "len": b_classes.Function(is_builtin=True, function=b_functions.len, name="len"),
             "int": b_classes.Function(is_builtin=True, function=b_functions.int, name="int"),
             "float": b_classes.Function(is_builtin=True, function=b_functions.float, name="float"),
@@ -100,6 +103,7 @@ class Interpreter:
             "version": b_classes.Function(is_builtin=True, function=lambda: b_functions.version(self.config), name="version"),
             "clear": b_classes.Function(is_builtin=True, function=b_functions.clear, name="clear"),
             "signature": b_classes.Function(is_builtin=True, function=self.signature, name="signature"),
+            "declen": b_classes.Function(is_builtin=True, function=b_functions.declen, name="declen"),
             "File": b_classes.Object(is_builtin=True, object=b_classes.File, name="File"),
             "LuciaException": b_classes.Object(is_builtin=True, object=b_exceptions.LuciaException, name="LuciaException"),
             "ListPatternRecognitionWarning": b_classes.Object(is_builtin=True, object=b_exceptions.ListPatterRecognitionWarning, name="ListPatternRecognitionWarning"),
@@ -386,6 +390,8 @@ class Interpreter:
         type = self.evaluate(statement["variable_type"])
         value = self.evaluate(statement["value"])
         is_final = statement["is_final"]
+        is_public = statement["is_public"]
+        is_static = statement["is_static"]
         self.check_type(type)
         if statement["name"] in self.variables:
             var = self.variables[statement["name"]]
@@ -401,7 +407,7 @@ class Interpreter:
             self.debug_log(f"<Variable '{statement['name']}' declared with value {repr(value)}.>")
         else:
             self.debug_log(f"<Variable '{statement['name']}' declared.>")
-        self.variables[statement["name"]] = b_classes.Variable(statement["name"], value, {"is_final": is_final}, type_=type)
+        self.variables[statement["name"]] = b_classes.Variable(statement["name"], value, {"is_final": is_final, "is_public": is_public, "is_static": is_static}, type_=type)
         return self.variables[statement["name"]]
 
     def handle_variable(self, statement):
@@ -441,6 +447,24 @@ class Interpreter:
         left = self.evaluate(statement["left"])
         right = self.evaluate(statement["right"])
         operator = statement["operator"]
+        if isinstance(left, b_classes.Variable):
+            left = left.value
+        if isinstance(right, b_classes.Variable):
+            right = right.value
+
+        prec = 28
+        if len(str(left)) + 2 > prec:
+            prec = len(str(left)) + 2
+        if len(str(right)) + 2 > prec:
+            prec = len(str(right)) + 2
+
+        decimal.getcontext().prec = prec
+
+        if isinstance(left, float):
+            left = b_classes.Decimal(left)
+        if isinstance(right, float):
+            right = b_classes.Decimal(right)
+
         if operator == "+":
             return left + right
         elif operator == "-":
@@ -507,6 +531,8 @@ class Interpreter:
                 raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value /= right
             return left
+        elif operator == "abs":
+            return abs(right)
         else:
             raise SyntaxError(f"Unexpected operator: {operator}")
 
@@ -604,12 +630,14 @@ class Interpreter:
             else:
                 raise NameError(f"Name '{statement["name"]}' is not defined.")
         del self.variables[statement["name"]]
+        self.debug_log(f"<Variable '{statement["name"]}' forgotten.>")
 
     def handle_for_loop(self, statement):
         variable = statement["variable_name"]
         iterable = list(self.evaluate(statement["iterable"]))
         self.debug_log(f"<For loop with variable {variable} and iterable {iterable}>")
-        for element in iterable:
+        for i, element in enumerate(iterable):
+            self.debug_log(f"<For loop iteration {i}>")
             self.variables[variable] = b_classes.Variable(variable, element)
             self.interpret(statement["body"])
 
@@ -619,6 +647,7 @@ class Interpreter:
             self.debug_log(f"<While loop with condition {condition}>")
             self.interpret(statement["body"])
             condition = self.evaluate(statement["condition"])
+        self.debug_log(f"<While loop with condition {condition}>")
 
     def handle_with(self, statement):
         self.debug_log(f"<With statement with context {statement["with"]}>")
@@ -630,8 +659,9 @@ class Interpreter:
         module_name = statement["module_name"]
         as_name = statement["as"]
         from_ = None if (statement["from"] is None) else self.evaluate(statement["from"])
+        module = self.import_module(module_name, as_name, from_)
         self.debug_log(f"<Module '{module_name}' imported from '{os.path.abspath(from_)}' as '{as_name}'>")
-        return self.import_module(module_name, as_name, from_)
+        return module
 
     def import_module(self, module_name, as_name=None, from_=None):
         original_module_name = as_name if as_name else module_name
@@ -654,6 +684,8 @@ class Interpreter:
                 module_files.insert(0, "__init__.py")
 
             for module in module_files:
+                if module in ("__pycache__"):
+                    continue
                 if f".{module.rsplit('.', 1)[1]}" in self.config["lucia_file_extensions"]:
                     with open(os.path.join(lib_dir, module_name, module), 'r', encoding='utf-8') as file:
                         code = file.read()
@@ -698,8 +730,11 @@ class Interpreter:
                         else:
                             self.debug_log(f"<Object '{v}' is not supported. {type(self.variables[v])}>")
                             raise TypeError(f"Object '{v}' is not supported.")
-                    globals_ = {**self.variables, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math, "random": random}
+                    globals_ = {**self.variables, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math, "random": random, "decimal": decimal, "Decimal": b_classes.Decimal, "re": re, "default_int": int, "time": time}
                     locals_ = {}
+
+                    sys.path.append(module_path)
+
                     module_spec = importlib.util.spec_from_file_location(original_module_name, module_path)
 
                     if module_spec and module_spec.loader:
@@ -757,6 +792,8 @@ class Interpreter:
             self.debug_log(f"<Property '{statement['object_name']}.{statement['property']['name']}' accessed>")
             if not object_:
                 raise NameError(f"Object '{statement['object_name']}' is not defined.")
+            if not isinstance(object_, b_classes.Object):
+                raise TypeError(f"Object '{statement['object_name']}' is not supported.")
             if statement["property"]["name"] in object_._data:
                 return object_._data.get(statement["property"]["name"], b_classes.Boolean(None))
             elif statement["property"]["name"] in object_._data:
@@ -773,14 +810,22 @@ class Interpreter:
             raise SyntaxError(f"Unexpected property type: {statement['property']['type']}")
 
     def call_object_function(self, object_, function_name, pos_args, named_args, object_name=None, custom_name=None):
-        function = object_._data.get(function_name, b_classes.Boolean(None))
+        function = object_._data.get(function_name, null)
+        if function == null:
+            closest_match = find_closest_match(object_._data.keys(), function_name)
+            if closest_match:
+                raise NameError(f"Object {object_} has no function '{function_name}'. Did you mean: '{closest_match}'?")
+            raise NameError(f"Object {object_} has no function '{function_name}'.")
         name = f"'{function_name}'"
         if isinstance(function, b_classes.Function):
             if function.is_builtin:
                 self.stack.append({"name": name, "variables": self.variables, "return_value": self.return_value,
                                    "is_returning": self.is_returning})
                 self.check_stack()
-                ret = function.function(*pos_args, **named_args)
+                if isinstance(function, b_classes.Function):
+                    ret = function.function(*pos_args, **named_args)
+                else:
+                    ret = function(*pos_args, **named_args)
                 self.stack.pop()
                 return ret
             return self.call_function(function, pos_args, named_args, custom_name=custom_name)

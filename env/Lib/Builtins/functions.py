@@ -1,28 +1,22 @@
 import os
 import sys
 import re
+import time
+import decimal
 
 str_ = str
 int_ = int
 float_ = float
 range_ = range
 len_ = len
+print_ = print
+
+import sys
+import decimal
 
 def print(*args, end='\n'):
-    args2 = []
-    for arg in args:
-        arg = str(arg)
-        try:
-            float_value = float(arg)
-            if float_value.is_integer():
-                arg = str(int(float_value))
-            else:
-                arg = str(float_value)
-        except ValueError:
-            pass
-        args2.append(arg.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r").replace("\\b", "\b").replace("\\f", "\f").replace("\\v", "\v"))
+    print_(*args, end=end)
 
-    sys.stdout.write(f"{' '.join(args2)}{end}")
 
 
 def input(prompt=''):
@@ -44,6 +38,20 @@ def hex_to_ansi(hex_color, is_bg=False):
         return f"\033[48;2;{r};{g};{b}m"  # Background color
     return f"\033[38;2;{r};{g};{b}m"  # Foreground color
 
+def wait(ms):
+    if isinstance(ms, str_):
+        if ms.endswith("ms"):
+            ms = ms[:-2]
+        elif ms.endswith("s"):
+            ms = ms[:-1] + "000"
+        elif ms.endswith("m"):
+            ms = ms[:-1] + "000"
+        else:
+            raise ValueError("The time argument must be in milliseconds (ms), seconds (s), or minutes (m)")
+    ms = int(ms)
+    if ms < 0:
+        raise ValueError("The time argument must be a non-negative number")
+    time.sleep(ms / 1000)
 
 def styled_print(text, fg_color, *, bg_color=None, bold=False, underline=False, italic=False, strikethrough=False, blink=False, reverse=False, link=None, end="\n"):
     style = hex_to_ansi(fg_color)
@@ -71,6 +79,15 @@ def styled_print(text, fg_color, *, bg_color=None, bold=False, underline=False, 
 
 def len(obj):
     return len_(obj)
+
+def declen(obj):
+    if hasattr(obj, "__declen__"):
+        return obj.__declen__()
+    if hasattr(obj, "value"):
+        if hasattr(obj.value, "__declen__"):
+            return obj.value.__declen__()
+    else:
+        raise TypeError(f"Object of type '{type(obj).__name__}' has no 'declen'.")
 
 def str(obj):
     return str_(obj)
