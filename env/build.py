@@ -69,13 +69,14 @@ print(command)
 
 os.system(command)
 
-installer_command = (f"python -m PyInstaller --noconfirm --onefile --clean --log-level TRACE --uac-admin "
-                     f"--icon={INSTALLER_ICON2} --name lucia_installer "
-                     f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
-                     f"--specpath \"{BUILD_PATH}\" \"{FILE2}\""
-                     )
+NSIS_PATH = "C:\\Program Files (x86)\\NSIS"
+NSI_INSTALLER_PATH = os.path.abspath("lucia_installer.nsi").replace("\\", "/")
+OUTPUT_EXE_PATH = os.path.join("env", "bin", f"LuciaInstaller{VERSION}.exe").replace("\\", "/")
+
+installer_command = f'"{NSIS_PATH}\\makensis" "{NSI_INSTALLER_PATH}" "OUTPUT_EXE_PATH={OUTPUT_EXE_PATH}" "INSTALLER_ICON2={INSTALLER_ICON2}"'
 
 print(installer_command)
+
 os.system(installer_command)
 
 print("Build successful.")

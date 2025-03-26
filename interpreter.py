@@ -59,6 +59,7 @@ def get_type(value):
         b_classes.Function: "function",
         b_classes.List: "list",
         b_classes.Map: "map",
+        b_classes.Decimal: "float",
     }
 
     if isinstance(value, b_classes.Variable):
@@ -169,10 +170,12 @@ class Interpreter:
 
         types_mapping = {
             "void": "null",
+            "Decimal": "float",
             b_classes.List: "list",
             b_classes.Map: "map",
             b_classes.Function: "function",
             b_classes.Object: "object",
+            b_classes.Decimal: "float",
         }
 
         type_ = types_mapping.get(type_, type_)

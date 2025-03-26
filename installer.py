@@ -293,7 +293,7 @@ def install_latest():
 
 if __name__ == "__main__":
     while True:
-        print("----- Lucia Installer -----")
+        print(f"----- Lucia Installer - {VERSION} -----")
         print(" 1 - Install Lucia")
         print(" 2 - Uninstall Lucia")
         print(" 3 - Install latest commit")

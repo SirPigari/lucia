@@ -120,18 +120,18 @@ def handle_exception(exception, file_name, exit=True):
     if exit:
         clear_exit(1)
 
-def handle_file_exec(file_path):
+def handle_file_exec(file_path, exit=True):
     if config.get("use_lucia_traceback", True):
         try:
-            execute_file(file_path)
+            execute_file(file_path, exit)
         except SystemExit:
             clear_exit(0)
         except Warning as w:
             handle_exception(w, file_path, exit=False)
         except Exception as e:
-            handle_exception(e, file_path)
+            handle_exception(e, file_path, exit)
     else:
-        execute_file(file_path)
+        execute_file(file_path, exit)
 
 CONFIG_PATH = os.path.join(WORKING_DIR, 'env', 'config.json')
 with open(CONFIG_PATH, 'r', encoding='utf-8') as config_file:
