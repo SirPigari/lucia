@@ -21,8 +21,12 @@ def Literal(__literal):
         return Function(__literal)
     elif isinstance(__literal, Variable):
         return Variable(name="_", value=__literal)
+    elif isinstance(__literal, Decimal):
+        return Decimal(__literal)
+    elif __literal is None:
+        return Boolean(None)
     else:
-        raise TypeError(f"Unsupported literal type: {type(__literal).__name__}")
+        return __literal
 
 
 class Boolean:
@@ -96,6 +100,9 @@ class Boolean:
             return self.literal >= other.literal
         return self.literal >= other
 
+    def __hash__(self):
+        return hash(self.literal)
+
 
 class Object:
     def __init__(self, value=None, name=None, custom_str=None, is_builtin=False, object=None):
@@ -114,6 +121,16 @@ class Object:
                 self._data = value.get_data()
             else:
                 raise TypeError(f"Expected dictionary or Object, got {type(value).__name__}")
+
+    def __enter__(self):
+        if self.is_builtin:
+            return self.object.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.is_builtin:
+            return self.object.__exit__(exc_type, exc_val, exc_tb)
+        return self
 
     def __str__(self):
         if self.custom_str:
@@ -468,10 +485,17 @@ class Str(str):
 class List(list):
     pass
 
+def repr_(obj):
+    if isinstance(obj, Variable):
+        obj = obj.value
+    return repr(obj)
+
 class Map(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._data = self
+    def __str__(self):
+        map_ = ", ".join(f"{repr_(k)}: {repr_(v)}" for k, v in self.items())
+        return f"{{{map_}}}"
+    def __repr__(self):
+        return f"<map at {id(self)}>"
 
 
 class File:

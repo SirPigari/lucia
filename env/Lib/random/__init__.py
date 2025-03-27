@@ -10,6 +10,9 @@ def shuffle(seq):
 def seed(a=None, version=2):
     random.seed(a, version)
 
+def bool(chance=0.5):
+    return Boolean(random.random() < chance)
+
 def getstate():
     return random.getstate()
 

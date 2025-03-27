@@ -83,7 +83,7 @@ def _handle_invalid_type(type_, valid_types):
 
 
 class Interpreter:
-    def __init__(self, config, filename=None):
+    def __init__(self, config, filename=None, repl=False):
         self.variables = {
             "print": b_classes.Function(is_builtin=True, function=b_functions.print, name="print"),
             "styledprint": b_classes.Function(is_builtin=True, function=b_functions.styled_print, name="styledprint"),
@@ -117,6 +117,7 @@ class Interpreter:
         })
 
         self.filename = filename
+        self.repl = repl
         if not filename:
             self.filename = "<stdin>"
         self.config = config
@@ -221,6 +222,9 @@ class Interpreter:
 
     def evaluate(self, statement):
         statement_mapping = {
+            # PREDEF
+            "PREDEF": self.handle_predef,
+
             # FUNCTIONS
             "FUNCTIONDECLARATION": self.handle_function_declaration,
             "CALL": self.handle_call,
@@ -256,6 +260,7 @@ class Interpreter:
             "NAMEDARG": lambda s: {s["name"]: self.evaluate(s["value"])},
             "ASSIGNMENT_INDEX": self.handle_assignment_index,
             "INDEX": self.handle_index,
+            "INDEX_OPERATION": self.handle_index_operation,
         }
 
         if not isinstance(statement, dict):
@@ -268,7 +273,6 @@ class Interpreter:
         return handler(statement)
 
     def handle_function_declaration(self, statement):
-        self.debug_log(f"<Function '{statement['name']}' declared.>")
         name = statement["name"]
         args = statement["parameters"]
         body = statement["body"]
@@ -279,7 +283,10 @@ class Interpreter:
             if isinstance(fun, b_classes.Function):
                 if fun.modifiers["is_final"]:
                     raise PermissionError(f"Function '{name}' is final and cannot be re-declared.")
-            raise NameError(f"Function '{name}' is already declared.")
+                self.debug_log(f"<Function '{statement['name']}' re-declared.>")
+        else:
+            self.debug_log(f"<Function '{statement['name']}' declared.>")
+            # raise NameError(f"Function '{name}' is already declared.")
         self.variables[name] = b_classes.Function(name, args, body, modifiers, return_type)
         return self.variables[name]
 
@@ -331,7 +338,7 @@ class Interpreter:
             self.stack.pop()
             if ret is not None:
                 self.debug_log(f"<Function {name} returned {repr(ret)}>")
-            return ret
+            return b_classes.Literal(ret)
 
         body = function.body
         parameters = function.parameters
@@ -355,7 +362,7 @@ class Interpreter:
             default_value = parameter['default_value']
 
             if param_name in named_args:
-                if not self.check_type(self.get_type(named_args[param_name]), param_type):
+                if not self.check_type(get_type(named_args[param_name]), param_type):
                     raise TypeError(
                         f"Expected type '{param_type}' for argument '{param_name}', but got '{self.get_type(named_args[param_name])}'")
                 all_args[param_name] = named_args[param_name]
@@ -421,6 +428,9 @@ class Interpreter:
                 raise NameError(f"Name '{name}' is not defined. Did you mean: '{closest_match}'?")
             else:
                 raise NameError(f"Name '{name}' is not defined.")
+        if self.repl:
+            if not (self.stack and self.stack[-1]["name"] == "print"):
+                print(ret)
         return self.variables[name]
 
     def handle_assignment(self, statement):
@@ -468,6 +478,14 @@ class Interpreter:
         if isinstance(right, float):
             right = b_classes.Decimal(right)
 
+        if isinstance(left, list):
+            left = b_classes.Variable(None, left)
+        if isinstance(right, list):
+            right = b_classes.Variable(None, right)
+
+        return self.make_operation(left, right, operator)
+
+    def make_operation(self, left, right, operator):
         if operator == "+":
             return left + right
         elif operator == "-":
@@ -498,6 +516,11 @@ class Interpreter:
             return b_classes.Boolean(left or right)
         elif operator == "!":
             return b_classes.Boolean(not right)
+        elif operator == "~":
+            if isinstance(right, (b_classes.List, b_classes.Map)):
+                return b_classes.Boolean(left in right)
+            else:
+                raise ValueError(f"Expected an iterable for 'right', got '{get_type(right)}'")
         elif operator == "+=":
             if not isinstance(left, b_classes.Variable):
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
@@ -653,8 +676,9 @@ class Interpreter:
         self.debug_log(f"<While loop with condition {condition}>")
 
     def handle_with(self, statement):
-        self.debug_log(f"<With statement with context {statement["with"]}>")
-        with self.evaluate(statement["with"]) as obj:
+        context = self.evaluate(statement["with"])
+        self.debug_log(f"<With statement with context {context}>")
+        with context as obj:
             self.variables[statement["as"]] = obj
             self.interpret(statement["body"])
 
@@ -731,9 +755,8 @@ class Interpreter:
                         elif isinstance(self.variables[v], Exception):
                             variables_to_globals[v] = self.variables[v]
                         else:
-                            self.debug_log(f"<Object '{v}' is not supported. {type(self.variables[v])}>")
-                            raise TypeError(f"Object '{v}' is not supported.")
-                    globals_ = {**self.variables, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math, "random": random, "decimal": decimal, "Decimal": b_classes.Decimal, "re": re, "default_int": int, "time": time}
+                            pass
+                    globals_ = {**self.variables, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math, "random": random, "decimal": decimal, "Decimal": b_classes.Decimal, "re": re, "default_int": int, "time": time, "true": true, "false": false, "null": null, "Boolean": b_classes.Boolean}
                     locals_ = {}
 
                     sys.path.append(module_path)
@@ -798,7 +821,11 @@ class Interpreter:
             if not isinstance(object_, b_classes.Object):
                 raise TypeError(f"Object '{statement['object_name']}' is not supported.")
             if statement["property"]["name"] in object_._data:
-                return object_._data.get(statement["property"]["name"], b_classes.Boolean(None))
+                ret = object_._data.get(statement["property"]["name"], b_classes.Boolean(None))
+                if self.repl:
+                    if not (self.stack and self.stack[-1]["name"] == "print"):
+                        print(ret)
+                return ret
             elif statement["property"]["name"] in object_._data:
                 return b_classes.Function(f"{statement["object_name"]}.{statement["property"]["name"]}",
                                           object_.get("functions", {}).get(statement["property"]["name"],
@@ -902,9 +929,8 @@ class Interpreter:
         try:
             index = int(index)
             value = int(value)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
-        self.debug_log(f"<Variable '{name}' assigned at index {index} to {value}>")
         if name in self.variables:
             if isinstance(self.variables[name], list):
                 try:
@@ -923,6 +949,7 @@ class Interpreter:
                 self.variables[name][index] = value
         else:
             raise NameError(f"Name '{name}' is not defined.")
+        self.debug_log(f"<Variable '{name}' assigned at index {index} to {value}>")
 
     def handle_index(self, statement):
         index = self.evaluate(statement["index"])
@@ -952,3 +979,54 @@ class Interpreter:
             if index not in iterable:
                 raise b_exceptions.KeyError(f"Key '{index}' not found in '{name}'.")
         return iterable[index]
+
+    def handle_predef(self, statement):
+        predef_type = statement["predef_type"]
+
+        if predef_type == "ALIAS":
+            if statement["b"]:
+                self.debug_log(f"<Alias '{statement["a"][1]}' -> '{statement["b"][1]}' declared>")
+            else:
+                self.debug_log(f"<Alias '{statement["a"][1]}' declared>")
+        elif predef_type == "DEL":
+            self.debug_log(f"<Alias '{statement["a"][1]}' removed.>")
+
+    def handle_index_operation(self, statement):
+        left_name = statement["left"]["name"]
+        left_index = self.evaluate(statement["left"]["index"])
+        right = self.evaluate(statement["right"])
+        operator = statement["operator"]
+        if left_name in self.variables:
+            if operator == "+=":
+                self.variables[left_name][left_index] += right
+                return self.variables[left_name][left_index]
+            elif operator == "-=":
+                self.variables[left_name][left_index] -= right
+                return self.variables[left_name][left_index]
+            elif operator == "*=":
+                self.variables[left_name][left_index] *= right
+                return self.variables[left_name][left_index]
+            elif operator == "/=":
+                self.variables[left_name][left_index] /= right
+                return self.variables[left_name][left_index]
+            return self.make_operation(self.variables[left_name][left_index], right, operator)
+        else:
+            closest_match = find_closest_match(self.variables.keys(), left_name)
+            if closest_match:
+                raise NameError(f"Name '{left_name}' is not defined. Did you mean: '{closest_match}'?")
+            raise NameError(f"Name '{left_name}' is not defined.")
+
+    def call_object_declaration(self, object_, pos_args, named_args, object_name=None, custom_name=None):
+        name = f"'{object_.name}'"
+        if custom_name:
+            name = f"'{custom_name}' (reassigned from '{object_.name}')"
+        self.debug_log(f"<Object {name} called.>")
+        if object_.is_builtin:
+            self.stack.append({"name": name, "variables": self.variables, "return_value": self.return_value,
+                               "is_returning": self.is_returning})
+            self.check_stack()
+            ret = object_.object(*pos_args, **named_args)
+            self.stack.pop()
+            if ret is not None:
+                self.debug_log(f"<Object {name} returned {repr(ret)}>")
+            return b_classes.Object(is_builtin=True, object=ret, custom_str=str(ret))

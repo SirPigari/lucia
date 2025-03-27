@@ -47,6 +47,7 @@ DATA_PATH = os.path.abspath(".").replace("\\", "/")
 FILE = os.path.abspath("lucia.py").replace("\\", "/")
 FILE2 = os.path.abspath("installer.py").replace("\\", "/")
 EXE_PATH = os.path.join(BIN_PATH, "lucia.exe").replace("\\", "/")
+VERSION = "1.1.1"
 
 kill_process("lucia.exe")
 
@@ -74,6 +75,12 @@ NSI_INSTALLER_PATH = os.path.abspath("lucia_installer.nsi").replace("\\", "/")
 OUTPUT_EXE_PATH = os.path.join("env", "bin", f"LuciaInstaller{VERSION}.exe").replace("\\", "/")
 
 installer_command = f'"{NSIS_PATH}\\makensis" "{NSI_INSTALLER_PATH}" "OUTPUT_EXE_PATH={OUTPUT_EXE_PATH}" "INSTALLER_ICON2={INSTALLER_ICON2}"'
+
+installer_command = (f"python -m PyInstaller --noconfirm --onefile --clean --log-level TRACE --uac-admin --noupx "
+                     f"--icon={INSTALLER_ICON2} --name lucia_installer "
+                     f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
+                     f"--specpath \"{BUILD_PATH}\" \"{FILE2}\""
+                     )
 
 print(installer_command)
 

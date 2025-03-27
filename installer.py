@@ -9,7 +9,7 @@ import platform
 import winreg
 from tqdm import tqdm
 
-VERSION = "1.1"
+VERSION = "1.1.1"
 INSTALL_PATH = f"C:\\Users\\{os.getlogin()}\\AppData\\Local\\Programs\\LuciaAPL\\"
 BIN_PATH = os.path.join(INSTALL_PATH, "env\\bin")
 

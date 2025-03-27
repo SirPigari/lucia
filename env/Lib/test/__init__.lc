@@ -3,3 +3,64 @@ public static final fun test() -> int: return 0 end
 private static final fun you_cant_call_me_lol() -> int: print("you cant call me lol") end
 
 public static final fun you_can_call_me() -> int: print("you can call me") return 0 end
+
+public static final fun test_all() -> int:
+    // tests many features of the language
+    #alias function -> fun
+    function test() -> int: return 0 end
+    test()
+    #del function
+    i: int = 0
+    try:
+        i = "a"
+    end catch (e):
+        print(e)
+    end
+    forget i
+    i: any = "test"
+    print(i)
+    print(i + "a")
+    print(0 > -1)
+    print(0 < -1)
+    for (i in [0...10]):
+        print(i)
+    end
+    m = {}
+    m["a"] = 1
+    m["b"] = 2
+    print(m["a"])
+    print(m["b"])
+    print(m)
+    try:
+        throw "test"
+    end catch (e):
+        print(e)
+    end
+    if (true):
+        print("true")
+    end else:
+        print("false")
+    end
+    while (i < 10):
+        i += 1
+    end
+    print(i)
+    with (TestContext()):
+        print("test")
+    end
+    import math
+    print(math.sqrt(4))
+    print(math.PI)
+    object O: end
+    // comment
+    /* comment
+    multiline */
+    public static final fun args_test(a: int, b: int, c: int=10) -> int:
+        print(a)
+        print(b)
+        print(c)
+        return 0
+    end
+    args_test(1, 2, c=3)
+    return 0
+end

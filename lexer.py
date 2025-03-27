@@ -22,7 +22,9 @@ OPERATORS = [
     "%",
     "||",
     "&&",
-    "|"
+    "|",
+    "#",
+    "~",
 ]
 
 # Token specifications

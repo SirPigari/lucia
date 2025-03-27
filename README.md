@@ -20,6 +20,22 @@ Documentation for Lucia 1.1 can be found [here](env/Docs/tutorial.md).
 
 
 ## Changelog:
+### 1.1.1
+- Added predefs:
+  - Syntax:
+    - `#predef <name> -> <value>`
+    - Predefs:
+      - `#alias` - Aliases a function or variable (example: `#alias function -> fun`)
+      - `#del` - Deletes a alias defined before (example: `#del function`)
+- Added `test_all` function to `test` module.
+- Fixed MANY bugs
+- Added 'in' operator (`~`):
+  - Syntax: `<value> ~ <list or map>`
+  - Returns `true` if the value is in the list, `false` otherwise.
+- Fixed float operations
+
+---
+
 ### 1.1.0
 - Added `try`-`catch` statements
 - Added `console` library:

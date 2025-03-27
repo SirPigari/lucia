@@ -208,7 +208,7 @@ if FILE_PATH:
     handle_file_exec(FILE_PATH)
     clear_exit(0)
 else:
-    interpreter_ = interpreter.Interpreter(config)
+    interpreter_ = interpreter.Interpreter(config, repl=True)
     print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Lucia-{config.get('version', '(version unknown)')} REPL\nType 'exit()' to exit or 'help()' for help.\033[0m")
     while True:
         if config.get('use_lucia_traceback', True):

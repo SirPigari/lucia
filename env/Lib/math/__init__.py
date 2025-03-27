@@ -25,10 +25,10 @@ def getPi(n=2):
     n = int(n)
     with decimal.localcontext() as ctx:
         ctx.prec = n + 5
-        a = decimal.Decimal(1)
-        b = decimal.Decimal(1) / decimal.Decimal(2).sqrt()
-        t = decimal.Decimal(1) / decimal.Decimal(4)
-        p = decimal.Decimal(1)
+        a = Decimal(1)
+        b = Decimal(1) / Decimal(2).sqrt()
+        t = Decimal(1) / Decimal(4)
+        p = Decimal(1)
         for iteration in range(0, 100):
             an = (a + b) / 2
             bn = (a * b).sqrt()

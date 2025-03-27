@@ -23,17 +23,27 @@ class Parser:
         self.tokens = tokens
         self.pos = 0
         self.statements = []
+        self.aliases = {}
 
     @property
     def token(self):
         if self.pos >= len(self.tokens):
             return (None, None)
+        if self.tokens[self.pos] in self.aliases.keys():
+            if not self.aliases[self.tokens[self.pos]]:
+                self.pos += 1
+                return self.tokens[self.pos]
+            return self.aliases[self.tokens[self.pos]]
         return self.tokens[self.pos]
 
     def next(self):
         self.pos += 1
         # print(self.token)
         return self.token
+
+    def check_token(self):
+        if not self.token:
+            raise SyntaxError("Unexpected end of input")
 
     def get_next(self):
         if self.pos + 1 >= len(self.tokens):
@@ -52,6 +62,10 @@ class Parser:
             self.next()
             return None
 
+        if self.token == ('OPERATOR', '#'):
+            self.next()
+            return self.parse_predef()
+
         if self.token == ('IDENTIFIER', 'if'):
             return self.parse_if_statement()
 
@@ -66,9 +80,6 @@ class Parser:
 
         if self.token == ('IDENTIFIER', 'while'):
             return self.parse_while_loop()
-
-        if self.token[0] == 'IDENTIFIER' and self.token[1] in ('void', 'int', 'float', 'string', 'bool', 'any'):
-            return self.parse_type()
 
         if self.token == ('IDENTIFIER', 'for'):
             return self.parse_for_loop()
@@ -94,6 +105,9 @@ class Parser:
         if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next()[0] == 'SEPARATOR' and \
                 self.get_next()[1] == '(':
             return self.parse_function_call()
+
+        if self.token[0] == 'IDENTIFIER' and self.token[1] in ('void', 'int', 'float', 'string', 'bool', 'any'):
+            return self.parse_type()
 
         if self.token == ('SEPARATOR', '['):
             self.next()
@@ -164,9 +178,6 @@ class Parser:
         if self.token[0] in ('IDENTIFIER', 'NUMBER', 'STRING', 'BOOLEAN') and self.get_next() and self.get_next() == ('OPERATOR', '|'):
             return self.parse_operand()
 
-        if self.token[0] in ('NUMBER', 'STRING', 'BOOLEAN') and self.get_next() and self.get_next()[0] == 'OPERATOR':
-            return self.parse_operation()
-
         if self.token[0] == 'BOOLEAN':
             value = self.token[1]
             literal_value = True if value == 'true' else False if value == 'false' else None if value == 'null' else "Undefined"
@@ -184,27 +195,41 @@ class Parser:
         elif self.token[0] in ('NUMBER', 'IDENTIFIER', 'STRING') and self.get_next() and self.get_next() == ('OPERATOR', '='):
             return self.parse_assignment()
 
-        # Check for number, string, or variable to parse as an operation
-        elif self.token[0] in ('NUMBER', 'IDENTIFIER', 'STRING'):
+        if self.token[0] in ('IDENTIFIER', 'NUMBER', 'STRING', 'BOOLEAN') and self.get_next() and self.get_next()[0] == 'OPERATOR':
             return self.parse_operation()
+
+        elif self.token[0] in ('NUMBER', 'IDENTIFIER', 'STRING'):
+            if self.token[0] == 'NUMBER':
+                value = {"type": "NUMBER", "value": float(self.token[1])}
+            elif self.token[0] == 'IDENTIFIER':
+                value = {"type": "VARIABLE", "name": self.token[1]}
+            elif self.token[0] == 'STRING':
+                value = {"type": "STRING", "value": self.token[1].strip('"')}
+            elif self.token[0] == 'BOOLEAN':
+                value_ = self.token[1]
+                literal_value = True if value_ == 'true' else False if value_ == 'false' else None if value_ == 'null' else "Undefined"
+                self.next()
+                value = {"type": "BOOLEAN", "value": value_, "literal_value": literal_value}
+            self.next()
+            return value
 
         elif self.token[0] in ('COMMENT_SINGLE', 'COMMENT_MULTI', 'COMMENT_INLINE'):
             t = self.token[1]
             self.next()
             return {"type": "COMMENT", "value": t}
         else:
-            raise SyntaxError(f"Unexpected token: {self.token}")
+            raise SyntaxError(f"'{self.token[1]}' unexpected.")
 
     def parse_property(self):
         object_name = self.token[1]
         self.next()
         self.check_for('SEPARATOR', '.')
         self.next()
-        property_name = self.parse_expression()
+        property = self.parse_expression()
         return {
             "type": "PROPERTY",
             "object_name": object_name,
-            "property": property_name
+            "property": property
         }
 
     def parse_assignment(self):
@@ -421,13 +446,26 @@ class Parser:
         while self.token and self.token[0] == 'OPERATOR':
             operator = self.token[1]
             self.next()
-            right = self.parse_operand()
+            right = self.parse_expression()
             left = {"type": "OPERATION", "left": left, "operator": operator, "right": right}
         return left
 
     def parse_operand(self):
         if self.token[0] == 'NUMBER':
             value = {"type": "NUMBER", "value": float(self.token[1])}
+        elif self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '['):
+            name = self.token[1]
+            self.next()
+            self.check_for('SEPARATOR', '[')
+            self.next()
+            index = self.parse_expression()
+            self.check_for('SEPARATOR', ']')
+            self.next()
+            value = {
+                "type": "INDEX",
+                "name": name,
+                "index": index
+            }
         elif self.token[0] == 'IDENTIFIER':
             value = {"type": "VARIABLE", "name": self.token[1]}
         elif self.token[0] == 'STRING':
@@ -440,7 +478,6 @@ class Parser:
         else:
             value = self.parse_expression()
             self.pos -= 1
-            return value
         self.next()
         return value
 
@@ -627,6 +664,18 @@ class Parser:
                 "index": index,
                 "value": value
             }
+        elif self.token[0] == 'OPERATOR':
+            left = {
+                "type": "INDEX",
+                "name": name,
+                "index": index
+            }
+            while self.token and self.token[0] == 'OPERATOR':
+                operator = self.token[1]
+                self.next()
+                right = self.parse_expression()
+                left = {"type": "INDEX_OPERATION", "left": left, "operator": operator, "right": right}
+            return left
         return {
             "type": "INDEX",
             "name": name,
@@ -686,3 +735,33 @@ class Parser:
             "exception_variable": except_name,
             "catch_body": except_body
         }
+
+    def parse_predef(self):
+        if self.token == ('IDENTIFIER', 'alias'):
+            self.next()
+            self.check_token()
+            a = self.token
+            self.next()
+            if not self.token == ('OPERATOR', '->'):
+                self.aliases[a] = None
+                return {"type": "PREDEF", "predef_type": "ALIAS", "a": a, "b": None}
+            self.check_for('OPERATOR', '->')
+            self.next()
+            self.check_token()
+            b = self.token
+            self.next()
+            self.aliases[a] = b
+            return {"type": "PREDEF", "predef_type": "ALIAS", "a": a, "b": b}
+        elif self.token == ('IDENTIFIER', 'del'):
+            self.next()
+            self.check_token()
+            a = self.token
+            self.next()
+            b = next((k for k, v in self.aliases.items() if v == a), None)
+            if b:
+                del self.aliases[b]
+            else:
+                raise SyntaxError(f"Alias '{a}' does not exist.")
+            return {"type": "PREDEF", "predef_type": "DEL", "a": b}
+        else:
+            raise SyntaxError(f"Predef '{self.token[1]}' is not valid.")
