@@ -29,7 +29,6 @@ OPERATORS = [
 
 # Token specifications
 TOKEN_SPECIFICATION = [
-    ('NUMBER', r'-?\b\d+(\.\d+)?\b'),                                               # Integer or decimal number
     ('STRING', r'".*?"|\'.*?\''),                                                   # Double or single quoted string
     ('BOOLEAN', r'\b(true|false|null)\b'),                                          # Boolean literals
     ('COMMENT_INLINE', r'<#.*?#>'),                                                 # In-line comment
@@ -37,6 +36,7 @@ TOKEN_SPECIFICATION = [
     ('COMMENT_MULTI', r'/\*[\s\S]*?\*/'),                                           # Multi-line comment (replaces DOTALL flag)
     ('IDENTIFIER', r'\b[a-zA-Z_]\w*\b'),                                            # Identifiers (variable/function names)
     ('OPERATOR', r'|'.join(re.escape(op) for op in OPERATORS)),                     # Operators
+    ('NUMBER', r'-?\b\d+(\.\d+)?\b'),                                               # Integer or decimal number
     ('SEPARATOR', r'\.\.\.|[(){}\[\];:.,]'),                                        # Separators
     ('WHITESPACE', r'\s+'),                                                         # Whitespace
     ('INVALID', r'.')                                                               # Any other characters

@@ -132,6 +132,16 @@ def warn(*args, **kwargs):
     print(f"{hex_to_ansi(config["color_scheme"].get('warning', '#FFC107'))}{''.join(map(str, args))}\033[0m", **kwargs)
 
 def styled_print(text, fg_color, *, bg_color=None, bold=False, underline=False, italic=False, strikethrough=False, blink=False, reverse=False, link=None, end="\n"):
+    def hex_to_ansi(hex_color):
+        if not hex_color or hex_color.lower() == "reset":
+            return "\033[0m"
+
+        match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
+        if not match:
+            return "\033[0m"
+
+        r, g, b = tuple(default_int(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
+        return f"\033[38;2;{r};{g};{b}m"
     style = hex_to_ansi(fg_color)
     if bg_color:
         style += hex_to_ansi(bg_color, is_bg=True)

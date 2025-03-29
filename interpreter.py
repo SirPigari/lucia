@@ -26,13 +26,16 @@ def hash_object(obj):
     return hashlib.sha256(str(obj).encode()).hexdigest()
 
 def find_closest_match(word_list, target_word):
-    if not word_list:
+    if not word_list or target_word is None:
         return None
 
-    word_list = list(word_list)
+    word_list = [word for word in word_list if word is not None]
+
+    print(word_list, target_word)
 
     closest_match = difflib.get_close_matches(target_word, word_list, n=1)
     return closest_match[0] if closest_match else None
+
 
 def hex_to_ansi(hex_color):
     if not hex_color or hex_color.lower() == "reset":

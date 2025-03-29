@@ -151,7 +151,6 @@ class Parser:
         if self.token == ('SEPARATOR', '('):
             self.next()
             expression = self.parse_expression()
-            self.next()
             self.check_for('SEPARATOR', ')')
             self.next()
             return expression
