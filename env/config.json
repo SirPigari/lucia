@@ -5,6 +5,7 @@
   "supports_color": true,
   "use_lucia_traceback": false,
   "warnings": true,
+  "use_predefs": true,
   "print_comments": false,
   "lucia_file_extensions": [
     ".lucia",

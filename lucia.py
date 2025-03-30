@@ -77,7 +77,7 @@ def input_exec():
         return
     if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
         debug_log(f"Tokens generated: {tokens}")
-    parser = pparser.Parser(tokens)
+    parser = pparser.Parser(tokens, config)
     parser.parse()
     if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
         debug_log(f"Statements generated: {parser.statements}")
@@ -94,7 +94,7 @@ def execute_file(file_path, exit=True):
             if not tokens:
                 debug_log(f"Statements generated: []")
                 return
-        parser = pparser.Parser(tokens)
+        parser = pparser.Parser(tokens, config)
     except Exception as e:
         raise RuntimeError(f"Failed to execute file '{file_path}'. Error: {e}")
     try:

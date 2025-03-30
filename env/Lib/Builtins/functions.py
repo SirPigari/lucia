@@ -92,10 +92,10 @@ def declen(obj):
 def str(obj):
     return str_(obj)
 
-def int(obj):
-    if not obj:
+def int(*args):
+    if not args:
         return 0
-    return int_(obj)
+    return int_(*args)
 
 def float(obj):
     return float_(obj)

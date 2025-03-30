@@ -108,6 +108,7 @@ class Interpreter:
             "clear": b_classes.Function(is_builtin=True, function=b_functions.clear, name="clear"),
             "signature": b_classes.Function(is_builtin=True, function=self.signature, name="signature"),
             "declen": b_classes.Function(is_builtin=True, function=b_functions.declen, name="declen"),
+            "type": b_classes.Function(is_builtin=True, function=get_type, name="type"),
             "File": b_classes.Object(is_builtin=True, object=b_classes.File, name="File"),
             "LuciaException": b_classes.Object(is_builtin=True, object=b_exceptions.LuciaException, name="LuciaException"),
             "ListPatternRecognitionWarning": b_classes.Object(is_builtin=True, object=b_exceptions.ListPatterRecognitionWarning, name="ListPatternRecognitionWarning"),
@@ -354,8 +355,11 @@ class Interpreter:
         if total_args < len(required_params):
             raise TypeError(f"Expected {len(required_params)} arguments, but got {total_args}")
         if total_args > len(parameters):
+            if len(parameters) == 0:
+                raise TypeError(
+                    f"{name}() doesn't take any positional arguments but {total_args} were given")
             raise TypeError(
-                f"{function_name}() takes from {len(required_params)} to {len(parameters)} positional arguments but {total_args} were given")
+                f"{name}() takes from {len(required_params)} to {len(parameters)} positional arguments but {total_args} were given")
 
         all_args = {}
 
@@ -720,7 +724,7 @@ class Interpreter:
                     with open(os.path.join(lib_dir, module_name, module), 'r', encoding='utf-8') as file:
                         code = file.read()
                     tokens = lexer.lexer(code, include_comments=self.config.get('print_comments', False))
-                    parser = pparser.Parser(tokens)
+                    parser = pparser.Parser(tokens, self.config)
                     parser.parse()
                     interpreter = Interpreter(self.config)
                     interpreter.interpret(parser.statements)
@@ -729,15 +733,14 @@ class Interpreter:
                     for f in interpreter.variables:
                         if isinstance(interpreter.variables[f], b_classes.Function):
                             if interpreter.variables[f].is_builtin:
-                                variables_to_update[f] = interpreter.variables[f]
+                                variables_to_update[f] = interpreter.variables[f].function
                             elif interpreter.variables[f].modifiers["is_public"]:
+                                self.debug_log(f"<Function '{f}' imported from '{module_name}'>")
                                 variables_to_update[f] = interpreter.variables[f]
                         elif isinstance(interpreter.variables[f], b_classes.Variable):
                             variables_to_update[f] = interpreter.variables[f]
                         elif isinstance(interpreter.variables[f], b_classes.Object):
                             variables_to_update[f] = interpreter.variables[f]
-                        else:
-                            raise TypeError(f"Object '{f}' is not supported.")
 
                     alias_to_use = as_name or module_name
                     if not alias_to_use in self.variables:
@@ -757,8 +760,6 @@ class Interpreter:
                                 variables_to_globals[v] = self.variables[v].function
                         elif isinstance(self.variables[v], Exception):
                             variables_to_globals[v] = self.variables[v]
-                        else:
-                            pass
                     globals_ = {**self.variables, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math, "random": random, "decimal": decimal, "Decimal": b_classes.Decimal, "re": re, "default_int": int, "time": time, "true": true, "false": false, "null": null, "Boolean": b_classes.Boolean}
                     locals_ = {}
 
@@ -777,6 +778,7 @@ class Interpreter:
                         self.variables[alias_to_use] = b_classes.Object(name=alias_to_use)
 
                     for f in functions_from_locals_:
+                        self.debug_log(f"<Function '{f}' imported from '{module_name}'>")
                         self.variables[alias_to_use]._data[f] = b_classes.Function(is_builtin=True, function=functions_from_locals_[f], name=f)
 
                     variables_from_locals_ = {name: value for name, value in locals_.items() if not callable(value)}
@@ -843,6 +845,15 @@ class Interpreter:
             raise SyntaxError(f"Unexpected property type: {statement['property']['type']}")
 
     def call_object_function(self, object_, function_name, pos_args, named_args, object_name=None, custom_name=None):
+        if not isinstance(object_, b_classes.Object):
+            if isinstance(object_, b_classes.Variable):
+                object_ = object_.value
+            if hasattr(object_, function_name):
+                function = getattr(object_, function_name)
+                if callable(function):
+                    return function(*pos_args, **named_args)
+                else:
+                    raise TypeError(f"Object '{object_}' has no function '{function_name}'.")
         function = object_._data.get(function_name, null)
         if function == null:
             closest_match = find_closest_match(object_._data.keys(), function_name)
@@ -860,6 +871,8 @@ class Interpreter:
                 else:
                     ret = function(*pos_args, **named_args)
                 self.stack.pop()
+                if not ret is None:
+                    self.debug_log(f"<Function {name} returned {repr(ret)}>")
                 return ret
             return self.call_function(function, pos_args, named_args, custom_name=custom_name)
 
@@ -897,7 +910,7 @@ class Interpreter:
                 raise TypeError(f"Missing required positional argument: '{param_name}'")
 
         i = Interpreter(self.config)
-        i.variables = {**self.variables, **all_args}  # Merge all arguments into the variables environment
+        i.variables = {**self.variables, **all_args}
         self.stack.append({"name": name, "variables": i.variables, "return_value": i.return_value,
                            "is_returning": i.is_returning})
         self.check_stack()
@@ -985,6 +998,10 @@ class Interpreter:
 
     def handle_predef(self, statement):
         predef_type = statement["predef_type"]
+
+        if not self.config.get("use_predefs", True):
+            self.warn("Predefs are disabled in the configuration. This may cause errors or unexpected behavior.", b_exceptions.PredefDisabledWarning)
+            return
 
         if predef_type == "ALIAS":
             if statement["b"]:

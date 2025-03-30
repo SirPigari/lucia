@@ -160,6 +160,7 @@ def install():
         "supports_color": True,
         "use_lucia_traceback": True,
         "warnings": True,
+        "use_predefs": True,
         "print_comments": False,
         "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
         "home_dir": ENV_PATH,

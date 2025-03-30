@@ -1,3 +1,4 @@
+
 def get_type_default(type_):
     if type_ == "int":
         return {"type": "NUMBER", "value": 0}
@@ -19,22 +20,28 @@ def get_type_default(type_):
 
 
 class Parser:
-    def __init__(self, tokens):
+    def __init__(self, tokens, config):
         self.tokens = tokens
         self.pos = 0
         self.statements = []
         self.aliases = {}
+        self.config = config
 
     @property
     def token(self):
         if self.pos >= len(self.tokens):
             return (None, None)
-        if self.tokens[self.pos] in self.aliases.keys():
-            if not self.aliases[self.tokens[self.pos]]:
+        token = self.apply_aliases(self.tokens[self.pos])
+        return token
+
+    def apply_aliases(self, token):
+        if token in self.aliases.keys():
+            if not self.aliases[token]:
                 self.pos += 1
-                return self.tokens[self.pos]
-            return self.aliases[self.tokens[self.pos]]
-        return self.tokens[self.pos]
+                return token
+            return self.aliases[token]
+        return token
+
 
     def next(self):
         self.pos += 1
@@ -48,7 +55,7 @@ class Parser:
     def get_next(self):
         if self.pos + 1 >= len(self.tokens):
             return None
-        return self.tokens[self.pos + 1]
+        return self.apply_aliases(self.tokens[self.pos + 1])
 
     def parse(self):
         while self.pos < len(self.tokens):
@@ -742,14 +749,16 @@ class Parser:
             a = self.token
             self.next()
             if not self.token == ('OPERATOR', '->'):
-                self.aliases[a] = None
+                if self.config.get("use_predefs"):
+                    self.aliases[a] = None
                 return {"type": "PREDEF", "predef_type": "ALIAS", "a": a, "b": None}
             self.check_for('OPERATOR', '->')
             self.next()
             self.check_token()
             b = self.token
             self.next()
-            self.aliases[a] = b
+            if self.config.get("use_predefs"):
+                self.aliases[a] = b
             return {"type": "PREDEF", "predef_type": "ALIAS", "a": a, "b": b}
         elif self.token == ('IDENTIFIER', 'del'):
             self.next()
@@ -758,7 +767,8 @@ class Parser:
             self.next()
             b = next((k for k, v in self.aliases.items() if v == a), None)
             if b:
-                del self.aliases[b]
+                if self.config.get("use_predefs"):
+                    del self.aliases[b]
             else:
                 raise SyntaxError(f"Alias '{a}' does not exist.")
             return {"type": "PREDEF", "predef_type": "DEL", "a": b}
