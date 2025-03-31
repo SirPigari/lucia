@@ -26,6 +26,10 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
 
 
 ## Changelog:
+### 1.1.2
+- Fixed many bugs
+- Added documentation
+- Fixed installer
 ### 1.1.1
 - Added predefs:
   - Syntax:

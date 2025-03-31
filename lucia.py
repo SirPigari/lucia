@@ -7,6 +7,7 @@ import env
 import warnings
 
 WORKING_DIR = os.path.dirname(__file__)
+VERSION = "1.1.2"
 
 if hasattr(sys, 'frozen'):
     sys.path += [os.path.abspath(sys._MEIPASS)]
@@ -107,8 +108,36 @@ def execute_file(file_path, exit=True):
     interpreter_.interpret(parser.statements)
 
 def activate():
-    os.chdir(WORKING_DIR)
-    os.system(".\\env\\activate.py")
+    ENV_PATH = os.path.join(WORKING_DIR, 'env')
+    config_to_place = {
+        "moded": False,
+        "debug": False,
+        "debug_mode": "normal",
+        "supports_color": True,
+        "use_lucia_traceback": True,
+        "warnings": True,
+        "use_predefs": True,
+        "print_comments": False,
+        "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
+        "home_dir": ENV_PATH,
+        "recursion_limit": 9999,
+        "version": VERSION,
+        "color_scheme": {
+            "exception": "#F44350",
+            "warning": "#FFC107",
+            "debug": "#434343",
+            "comment": "#757575",
+            "input_arrows": "#136163",
+            "input_text": "#BCBEC4",
+            "output_text": "#BCBEC4",
+            "info": "#9209B3"
+        }
+    }
+
+    with open(f"{ENV_PATH}/config.json", "w") as file:
+        json.dump(config_to_place, file, indent=2)
+
+    print(f"{hex_to_ansi(config_to_place.get("info", "#9209B3"))}Environment activated.\33[0m")
 
 def handle_exception(exception, file_name, exit=True):
     exception = WrappedException(exception)
@@ -202,6 +231,18 @@ if len(sys.argv) > 1:
             else:
                 print(f"{hex_to_ansi(color_map.get('warning', '#FFC107'))}Skipping test '{file}'...\n\033[0m")
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}All tests have been executed.\033[0m")
+        clear_exit(0)
+    if "--activate" in sys.argv:
+        activate()
+        clear_exit(0)
+    if "--info" in sys.argv:
+        info = {
+            "version": config.get('version', '(version unknown)'),
+            "home_dir": config.get('home_dir', os.path.join(WORKING_DIR, 'env')),
+        }
+        for key, value in info.items():
+            print(f"{key}: {value}")
+
         clear_exit(0)
 
 if FILE_PATH:

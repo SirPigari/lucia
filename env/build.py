@@ -5,6 +5,7 @@ import psutil
 from tqdm import tqdm
 import tempfile
 import pathspec
+import subprocess
 
 
 def kill_process(process_name):
@@ -71,20 +72,13 @@ print(command)
 os.system(command)
 
 NSIS_PATH = "C:\\Program Files (x86)\\NSIS"
-NSI_INSTALLER_PATH = os.path.abspath("lucia_installer.nsi").replace("\\", "/")
-OUTPUT_EXE_PATH = os.path.join("env", "bin", f"LuciaInstaller{VERSION}.exe").replace("\\", "/")
+NSI_INSTALLER_PATH = os.path.abspath("installer/LuciaInstaller.nsi").replace("\\", "/")
 
-installer_command = f'"{NSIS_PATH}\\makensis" "{NSI_INSTALLER_PATH}" "OUTPUT_EXE_PATH={OUTPUT_EXE_PATH}" "INSTALLER_ICON2={INSTALLER_ICON2}"'
-
-installer_command = (f"python -m PyInstaller --noconfirm --onefile --clean --log-level TRACE --uac-admin --noupx "
-                     f"--icon={INSTALLER_ICON2} --name lucia_installer "
-                     f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
-                     f"--specpath \"{BUILD_PATH}\" \"{FILE2}\""
-                     )
+installer_command = [f"{NSIS_PATH}\\makensis.exe", NSI_INSTALLER_PATH]
 
 print(installer_command)
 
-os.system(installer_command)
+subprocess.run(installer_command, shell=True)
 
 print("Build successful.")
 

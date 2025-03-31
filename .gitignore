@@ -12,6 +12,7 @@ env/Lib/Builtins/__pycache__/
 tests/
 env/assets/fake_temp.zip
 env/assets/python_installer.exe
-installer.py
+env/Lib/Builtins/old/installer.py
 env/build/
 env/bin/lucia_installer.exe
+installer/LuciaInstaller.exe

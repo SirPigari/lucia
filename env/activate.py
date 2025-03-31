@@ -11,7 +11,7 @@ def hex_to_ansi(hex_color):
 	r, g, b = [int(match.group(1)[i:i+2], 16) for i in (0, 2, 4)]
 	return f"\033[38;2;{r};{g};{b}m"
 
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 ENV_PATH = os.path.abspath(os.path.dirname(__file__))
 config = {
   "moded": False,
