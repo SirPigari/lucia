@@ -111,7 +111,7 @@ class Interpreter:
             "type": b_classes.Function(is_builtin=True, function=get_type, name="type"),
             "File": b_classes.Object(is_builtin=True, object=b_classes.File, name="File"),
             "LuciaException": b_classes.Object(is_builtin=True, object=b_exceptions.LuciaException, name="LuciaException"),
-            "ListPatternRecognitionWarning": b_classes.Object(is_builtin=True, object=b_exceptions.ListPatterRecognitionWarning, name="ListPatternRecognitionWarning"),
+            "ListPatternRecognitionWarning": b_classes.Object(is_builtin=True, object=b_exceptions.ListPatternRecognitionWarning, name="ListPatternRecognitionWarning"),
             "RecursionLimitWarning": b_classes.Object(is_builtin=True, object=b_exceptions.RecursionLimitWarning, name="RecursionLimitWarning"),
             "TestContext": b_classes.Object(is_builtin=True, object=b_classes.TestContext, name="TestContext"),
         }
@@ -616,7 +616,7 @@ class Interpreter:
 
             if self.config.get("warnings", True):
                 self.warn(f"List pattern was not recognized: {pattern_values}",
-                              b_exceptions.ListPatterRecognitionWarning)
+                          b_exceptions.ListPatternRecognitionWarning)
                 return b_classes.List(pattern_values + [end])
             else:
                 return b_classes.List(pattern_values + [end])

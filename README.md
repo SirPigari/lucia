@@ -14,7 +14,13 @@ ___
 
 ___
 
-Documentation for Lucia 1.1 can be found [here](env/Docs/tutorial.md).
+Documentation for Lucia 1.1 can be found [here](env/Docs/language-syntax.md).
+
+## Installation
+
+Follow the instructions in the [installation guide](env/Docs/installation-guide.md) to install Lucia.
+
+## License
 
 [GNU 3.0 LICENSE](LICENSE)
 

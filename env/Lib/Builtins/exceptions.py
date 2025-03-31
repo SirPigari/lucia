@@ -1,26 +1,16 @@
 class LuciaException(Exception):
-    def __init__(self, message):
-        self.message = message
-        super().__init__(message)
-
-    def __str__(self):
-        return f"{self.__class__.__name__}: {self.message}"
+    pass
 
 class KeyError(LuciaException):
     pass
 
 class LuciaWarning(Warning):
-    def __init__(self, message):
-        self.message = message
-        super().__init__(message)
-
-    def __str__(self):
-        return f"{self.__class__.__name__}: {self.message}"
+    pass
 
 class PredefDisabledWarning(LuciaWarning):
     pass
 
-class ListPatterRecognitionWarning(LuciaWarning):
+class ListPatternRecognitionWarning(LuciaWarning):
     pass
 
 class RecursionLimitWarning(LuciaWarning):

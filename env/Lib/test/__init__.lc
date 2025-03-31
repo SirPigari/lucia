@@ -45,7 +45,8 @@ public static final fun test_all() -> int:
         i += 1
     end
     print(i)
-    with (TestContext()):
+    with (TestContext()) as tc:
+        print(tc)
         print("test")
     end
     import math

@@ -91,7 +91,7 @@ class Parser:
         if self.token == ('IDENTIFIER', 'for'):
             return self.parse_for_loop()
 
-        if self.token[0] == 'IDENTIFIER' and self.token[1] in ["fun", "async", "public", "static", "private", "mutable", "final"]:
+        if self.token[0] == 'IDENTIFIER' and self.token[1] in ["fun", "async", "public", "static", "private", "mutable", "final", "non-static"]:
             return self.parse_function_declaration()
 
         if self.token[0] == 'IDENTIFIER' and self.token[1] == 'forget':
@@ -315,13 +315,15 @@ class Parser:
     def parse_function_declaration(self):
         modifiers = {"async": False, "public": None, "static": False, "final": False}
 
-        while self.token and self.token[0] == 'IDENTIFIER' and self.token[1] in ('async', 'public', 'static', 'private', 'mutable', 'final'):
+        while self.token and self.token[0] == 'IDENTIFIER' and self.token[1] in ('async', 'public', 'static', 'private', 'mutable', 'final', 'non-static'):
             if self.token[1] == 'async':
                 modifiers["async"] = True
             elif self.token[1] == 'public':
                 modifiers["public"] = True
             elif self.token[1] == 'static':
                 modifiers["static"] = True
+            elif self.token[1] == 'non-static':
+                modifiers["static"] = False
             elif self.token[1] == 'private':
                 modifiers["public"] = False
             elif self.token[1] == 'mutable':
