@@ -13,11 +13,6 @@ Function .onInit
     StrCpy $Version "1.1.2"  ; Set version dynamically
     InitPluginsDir
     File /oname=$PLUGINSDIR\\options.ini "options.ini"  ; Updated relative path for options.ini
-    ${If} ${Errors}
-        System::Call "Kernel32::GetLastError() i() .r1"
-        MessageBox MB_ICONSTOP|MB_OK "Error code: $1 "
-        Quit
-    ${EndIf}
 FunctionEnd
 
 !define MUI_HEADERIMAGE
@@ -45,18 +40,6 @@ Page custom InstallOptionsPage
 !insertmacro MUI_LANGUAGE "English"
 
 Section "Install Lucia"
-    ExecFailed:
-        ; Get the last error code
-        System::Call 'kernel32::GetLastError() i .r1'
-
-        ; Format the error message from the error code
-        System::Call 'kernel32::FormatMessage(i 0x00001000, i 0, i r1, i 0, t .r0, i 512, i 0)'
-
-        ; Show the error message
-        StrCpy $2 "Execution failed:$\r$\n$INSTDIR\env\bin\lucia.exe$\r$\n$\r$\nError code: $1$\r$\nMessage: $0"
-        MessageBox MB_OK|MB_ICONSTOP "$2"
-        Quit
-
     IfFileExists "$INSTDIR\env\bin\lucia.exe" 0 +2
     Delete "$INSTDIR\env\bin\lucia.exe"
 
@@ -71,21 +54,27 @@ Section "Install Lucia"
          /x installer.py /x env/build /x env/bin/lucia_installer.exe \
          /x installer "C:\Users\sirpigari\Desktop\Projects\LuciaAPL\*.*"
 
-    ; Run lucia.exe with --activate if the user selected the "Activate" option
-    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 2" "State"
-    StrCmp $0 "1" 0 +2
-    Exec '"$INSTDIR\\env\\bin\\lucia.exe" --activate'
-    IfErrors ExecFailed  ; Jump to ExecFailed label if there's an error
+    ; Run lucia.exe after installation if the user selected the "Run Lucia" option
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
+        StrCmp $0 "1" 0 +2
+        nsExec::ExecToStack "where wt"
+        Pop $0
 
-    ; ; Run lucia.exe after installation if the user selected the "Run Lucia" option
-    ; ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
-    ;     StrCmp $0 "1" 0 +2
-    ;     Exec '\"$INSTDIR\\env\\bin\\lucia.exe\"'
-    ;     IfErrors ExecFailed  ; Jump to ExecFailed label if there's an error
+        StrCmp $0 "" 0 +2
+
+        MessageBox MB_OK 'cmd.exe /C "$INSTDIR\env\bin\lucia.exe"'
+        ExecWait 'cmd.exe /C "$INSTDIR\env\bin\lucia.exe"'
+        Goto Done2
+
+        MessageBox MB_OK 'wt ""$INSTDIR\env\bin\lucia.exe""'
+        ExecWait 'wt ""$INSTDIR\env\bin\lucia.exe""'
+
+        Done2:
 
     ; Add to PATH if checkbox is selected
     ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 1" "State"
-        StrCmp $0 "1" 0 +2
+        StrCmp $0 "1" 0 +3
+        Push "$INSTDIR\env\bin"
         Call AddToPath
 
     WriteUninstaller "$INSTDIR\\uninstall.exe"
@@ -138,12 +127,89 @@ Section "Uninstall"
 SectionEnd
 
 Function AddToPath
-    Exch $0
+    Exch $0              ; $0 = path to add
+    ReadRegStr $1 HKCU "Environment" "Path"
+
+    ; Check if it's already in PATH
+    Push $0              ; Save $0 for later use
+    Push $1              ; Save original PATH
+    Push $2
+    Push $3
+    Push $4
+    Push $5
+
+    StrCpy $2 $1         ; Copy of PATH to search through
+
+CheckLoop:
+    StrCpy $3 $2 1
+    StrCmp $2 "" DoneChecking
+    StrCmp $3 ";" NextChar
+    StrCpy $4 ""         ; Reset $4 to hold a segment
+
+    ; Extract the next path segment
+    GetNextSegment:
+        StrCpy $3 $2 1
+        StrCmp $3 ";" FoundSegment
+        StrCmp $2 "" FoundSegment
+        StrCpy $4 "$4$3"
+        StrCpy $2 $2 "" 1
+        Goto GetNextSegment
+
+FoundSegment:
+    ; Compare segment to $0
+    StrCmp $4 $0 AlreadyExists
+    StrCpy $2 $2 "" 1  ; Skip the semicolon
+    Goto CheckLoop
+
+NextChar:
+    ; Move to the next segment in PATH
+    StrCpy $2 $2 "" 1
+    Goto CheckLoop
+
+AlreadyExists:
+    Pop $5
+    Pop $4
+    Pop $3
+    Pop $2
+    Pop $1
+    Pop $0
+    Goto End
+
+DoneChecking:
+    Pop $5
+    Pop $4
+    Pop $3
+    Pop $2
+    Pop $1
+    Pop $0
+
+    ; Add the path because it doesn't exist
     ReadRegStr $1 HKCU "Environment" "Path"
     StrCmp $1 "" 0 +2
     WriteRegStr HKCU "Environment" "Path" "$0"
-    StrCmp $1 "" exit
+    StrCmp $1 "" End
     WriteRegStr HKCU "Environment" "Path" "$1;$0"
-exit:
+
+End:
     Pop $0
+FunctionEnd
+
+Function .onInstSuccess
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
+    StrCmp $0 "1" 0 +2
+
+    nsExec::ExecToStack "where wt"
+    Pop $0
+
+    StrCmp $0 "" 0 RunWithCMD
+
+    MessageBox MB_OK 'wt "$INSTDIR\env\bin\lucia.exe"'
+    ExecShell "" "wt" '""$INSTDIR\env\bin\lucia.exe""'
+    Goto EndLaunch
+
+RunWithCMD:
+    MessageBox MB_OK 'cmd.exe /c "$INSTDIR\env\bin\lucia.exe"'
+    ExecShell "" "cmd.exe" '/C "$INSTDIR\env\bin\lucia.exe"'
+
+EndLaunch:
 FunctionEnd

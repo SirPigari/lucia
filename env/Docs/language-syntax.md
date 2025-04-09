@@ -1,6 +1,71 @@
 Lucia Language Syntax
 =====================
 
+Content
+---------------
+
+- [Getting Started](#getting-started)
+  - [1\. Install Lucia](#1-install-lucia)
+  - [2\. Create a "Hello, World!" Program](#2-create-a-hello-world-program)
+  - [3\. Run the Program](#3-run-the-program)
+- [Variables & Data Types](#variables--data-types)
+  - [Supported Data Types:](#supported-data-types)
+  - [Operators](#operators)
+    - [Arithmetic Operators](#arithmetic-operators)
+    - [Comparison Operators](#comparison-operators)
+    - [Logical Operators](#logical-operators)
+    - [Assignment Operators](#assignment-operators)
+    - [Supported Operators](#supported-operators)
+- [Blocks in Lucia](#blocks-in-lucia)
+  - [Block Syntax](#block-syntax)
+  - [Example of a Block](#example-of-a-block)
+  - [Why Use Blocks?](#why-use-blocks)
+- [Indentation](#indentation)
+  - [Example](#example)
+  - [Summary](#summary)
+- [Control Flow](#control-flow)
+  - [If Statements](#if-statements)
+    - [Basic example](#basic-example)
+    - [Example breakdown](#example-breakdown)
+  - [Functions](#functions)
+    - [Basic Function Declaration](#basic-function-declaration)
+    - [Modifiers](#modifiers)
+    - [Using Modifiers](#using-modifiers)
+    - [Empty Functions](#empty-functions)
+    - [Example Function with Default Parameters](#example-function-with-default-parameters)
+    - [Calling Functions](#calling-functions)
+  - [Loops](#loops)
+    - [For Loop](#for-loop)
+    - [List Patterns](#list-patterns)
+    - [While Loop](#while-loop)
+- [Error Handling](#error-handling)
+  - [Function with Error Throwing](#function-with-error-throwing)
+  - [Try and Catch](#try-and-catch)
+  - [Default Error Type](#default-error-type)
+  - [Defining a new Exception](#defining-a-new-exception)
+  - [Defining a new Warning](#defining-a-new-warning)
+- [Comments](#comments)
+  - [Single-line Comment](#single-line-comment)
+  - [Multi-line Comment](#multi-line-comment)
+  - [In-line Comment](#in-line-comment)
+- [Basic Input/Output](#basic-inputoutput)
+  - [Output](#output)
+  - [Input](#input)
+- [Other Statements](#other-statements)
+  - [Import](#import)
+  - [With](#with)
+  - [Forget](#forget)
+  - [Objects](#objects)
+    - [Object Declaration](#object-declaration)
+    - [Object Usage](#object-usage)
+    - [Property](#property)
+  - [Predefs](#predefs)
+    - [Predef Types](#predef-types)
+      - [1\. #alias](#1-alias)
+      - [2\. #del](#2-del)
+- [Conclusion](#conclusion)
+
+
 Getting Started
 ---------------
 
@@ -9,6 +74,8 @@ To write your first program in Lucia, follow the steps below:
 ### 1\. Install Lucia
 
 First, you need to install the Lucia language. Follow the [installation guide](installation-guide.md) to set it up on your system.
+
+You can also customize your Lucia preferences by modifying the [config.json](../config.json) file. For details on how to configure the file, refer to the [Guide to `config.json`](config-guide.md).
 
 ### 2\. Create a "Hello, World!" Program
 
@@ -58,9 +125,6 @@ person: map = {"name": "Lucia", "age": 20}  // Map
 *   **any**: A type that can hold any value (e.g., can be a string, number, list, etc.).
 *   **list**: Ordered collection of values (e.g., `[1, 2, 3]`).
 *   **map**: Key-value pairs (e.g., `{"name": "Lucia", "age": 25}`).
-
-Operators
----------
 
 Operators
 ---------
@@ -404,6 +468,25 @@ end
 
 In the example above, if `throw` is used without a specified error type, the system will raise a `LuciaException` by default.
 
+### Defining a new Exception
+
+You can define a new exception type by using the `Exception` keyword:
+
+```lucia
+Exception CustomError
+throw "Error message" from CustomError
+```
+
+### Defining a new Warning
+
+You can define a new warning type by using the `Warning` keyword:
+
+```lucia
+Warning CustomWarning
+throw "Warning message" from CustomWarning
+```
+
+
 Comments
 --------
 
@@ -537,4 +620,42 @@ o.main()
 
 A property is any variable, function, or object that is called inside another. For example, `math.pi` is a variable property of the `math` module.
 
-Happy coding with Lucia!
+Predefs
+-------
+
+Predefs are special commands in Lucia that allow you to modify or define certain tokens before they are sent to the interpreter. They are processed during the pre-interpretation phase of your code. All predefs start with the # symbol.
+
+### Predef Types
+#### 1\. `#alias`
+The `#alias` predef allows you to create an alias, which means defining the first argument to be equivalent to the second argument.
+
+##### Example:
+
+```lucia
+#alias true -> false
+```
+
+This command makes `true` behave as `false` throughout the code. After this alias, any reference to `true` will be treated as `false`.
+
+#### 2\. `#del`
+The `#del` predef removes an alias that has been previously defined with `#alias`. It restores the original meaning of the token.
+
+##### Example:
+
+```lucia
+#del true
+```
+
+This command removes the alias for `true`, making it behave as it originally did, i.e., `true` again.
+
+--------------
+
+You can use predefs to modify the behavior of built-in tokens and tailor the language to your specific needs before the interpreter executes your code.
+
+
+# Conclusion
+Lucia is a straightforward language designed for ease of use and flexibility. You’ve covered essential topics like variable declaration, control flow, functions, error handling, and objects. The syntax promotes clarity, and the use of blocks and indentation improves code organization.
+
+To move forward, continue practicing with more complex projects, experiment with its features, and explore how to structure programs using Lucia’s modular capabilities.
+
+Happy coding with Lucia.

@@ -6,6 +6,7 @@ from tqdm import tqdm
 import tempfile
 import pathspec
 import subprocess
+import json
 
 
 def kill_process(process_name):
@@ -73,7 +74,46 @@ os.system(command)
 
 NSIS_PATH = "C:\\Program Files (x86)\\NSIS"
 NSI_INSTALLER_PATH = os.path.abspath("installer/LuciaInstaller.nsi").replace("\\", "/")
+CONFIG_PATH = os.path.abspath("env/config.json").replace("\\", "/")
+OG_CONFIG = {}
 
+with open(CONFIG_PATH, "r", encoding="utf-8") as config_file:
+    try:
+        OG_CONFIG = json.load(config_file)
+    except Exception as e:
+        print(f"Error reading config file: {e}")
+        exit(-1)
+
+ENV_PATH = "NOT_ACTIVATED"
+config_to_place = {
+    "moded": False,
+    "debug": False,
+    "debug_mode": "normal",
+    "supports_color": True,
+    "use_lucia_traceback": True,
+    "warnings": True,
+    "use_predefs": True,
+    "print_comments": False,
+    "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
+    "home_dir": ENV_PATH,
+    "recursion_limit": 9999,
+    "version": VERSION,
+    "color_scheme": {
+        "exception": "#F44350",
+        "warning": "#FFC107",
+        "debug": "#434343",
+        "comment": "#757575",
+        "input_arrows": "#136163",
+        "input_text": "#BCBEC4",
+        "output_text": "#BCBEC4",
+        "info": "#9209B3"
+    }
+}
+
+with open(CONFIG_PATH, "w") as file:
+    json.dump(config_to_place, file, indent=2)
+
+print("Building installer...")
 installer_command = [f"{NSIS_PATH}\\makensis.exe", NSI_INSTALLER_PATH]
 
 print(installer_command)
@@ -81,6 +121,13 @@ print(installer_command)
 subprocess.run(installer_command, shell=True)
 
 print("Build successful.")
+
+with open(CONFIG_PATH, "w", encoding="utf-8") as config_file:
+    try:
+        json.dump(OG_CONFIG, config_file, indent=2)
+    except Exception as e:
+        print(f"Error writing config file: {e}")
+        exit(-1)
 
 os.chdir(DATA_PATH)
 TEST_PATH = os.path.abspath("tests").replace("\\", "/")

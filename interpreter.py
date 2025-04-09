@@ -35,7 +35,11 @@ def find_closest_match(word_list, target_word):
     return closest_match[0] if closest_match else None
 
 
-def hex_to_ansi(hex_color):
+def hex_to_ansi(hex_color, config=None):
+    if not config:
+        config = {}
+    if not config.get("supports_color", False):
+        return ""
     if not hex_color or hex_color.lower() == "reset":
         return "\033[0m"
 
@@ -130,7 +134,7 @@ class Interpreter:
     def warn(self, message, category, stacklevel=3):
         if self.config.get('warnings', True):
             if self.config.get('use_lucia_traceback', True):
-                print(f"{hex_to_ansi(self.config.get("color_scheme", {}).get('warning', '#FFC107'))}-> File '{self.filename}' warning:\n{str(category.__name__)}: {message}\33[0m")
+                print(f"{hex_to_ansi(self.config.get("color_scheme", {}).get('warning', '#FFC107'), self.config)}-> File '{self.filename}' warning:\n{str(category.__name__)}: {message}\33[0m")
                 return
             else:
                 warnings.warn(message, category, stacklevel=stacklevel)
@@ -166,7 +170,7 @@ class Interpreter:
     def debug_log(self, *args):
         if self.config.get('debug', False):
             if self.config.get('debug_mode', 'normal') == 'normal' or self.config.get('debug_mode', 'normal') == 'full':
-                print(f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'))}{''.join(map(str, args))}\033[0m")
+                print(f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'), self.config)}{''.join(map(str, args))}\033[0m")
 
     def check_type(self, type_, expected=None, return_value=None):
         valid_types = b_variables.VALID_TYPES
@@ -943,7 +947,7 @@ class Interpreter:
 
     def handle_comment(self, statement):
         color = self.config.get("color_scheme", {}).get("comment", "#757575")
-        ansi_color = hex_to_ansi(color)
+        ansi_color = hex_to_ansi(color, self.config)
         print(f"{ansi_color}<{statement["value"]}>\033[0m")
 
     def handle_assignment_index(self, statement):

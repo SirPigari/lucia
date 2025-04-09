@@ -1,6 +1,3 @@
-from typing import Dict
-
-
 def get_type_default(type_):
     if type_ == "int":
         return {"type": "NUMBER", "value": 0}

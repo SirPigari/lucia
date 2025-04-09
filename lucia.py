@@ -5,6 +5,7 @@ import re
 import time
 import env
 import warnings
+import platform
 
 WORKING_DIR = os.path.dirname(__file__)
 VERSION = "1.1.2"
@@ -27,6 +28,7 @@ import pparser
 import lexer
 from env.Lib.Builtins.exceptions import WrappedException
 
+
 def clear_exit(code=0):
     globals_copy = globals().copy()
     for var in globals_copy:
@@ -37,6 +39,8 @@ def clear_exit(code=0):
 
 
 def hex_to_ansi(hex_color):
+    if not config.get("supports_color", False):
+        return ""
     if not hex_color or hex_color.lower() == "reset":
         return "\033[0m"
     match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
@@ -266,6 +270,9 @@ else:
                 input_exec()
             except SystemExit:
                 break
+            except KeyboardInterrupt:
+                print()
+                clear_exit(0)
             except (Exception, Warning) as e:
                 handle_exception(e, "<stdin>", exit=False)
         else:
