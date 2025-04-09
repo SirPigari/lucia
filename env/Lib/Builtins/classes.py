@@ -1,4 +1,5 @@
 import decimal
+from collections.abc import MutableMapping
 
 def Literal(__literal):
     if isinstance(__literal, str):
@@ -45,6 +46,12 @@ class Boolean:
         elif value == 'none':
             self.value = 'null'
             self.literal = None
+        elif value == '1':
+            self.value = 'true'
+            self.literal = True
+        elif value == '0':
+            self.value = 'false'
+            self.literal = False
         else:
             self.value = og_val
             self.literal = literal
@@ -52,7 +59,7 @@ class Boolean:
             self.literal = literal
 
     def __str__(self):
-        return self.value
+        return str(self.value)
 
     def __repr__(self):
         return self.value
@@ -483,19 +490,51 @@ class Str(str):
     pass
 
 class List(list):
-    pass
+    def __str__(self):
+        list_ = ", ".join(map(repr_, self))
+        return f"[{list_}]" if list_ else "[]"
+
+    def __repr__(self):
+        return f"<list at {id(self)}>"
+
+    def flatten(self):
+        stack = [self]
+        flat_list = []
+        while stack:
+            item = stack.pop()
+            if isinstance(item, list):
+                stack.extend(reversed(item))
+            else:
+                flat_list.append(item)
+        return List(flat_list)
 
 def repr_(obj):
     if isinstance(obj, Variable):
         obj = obj.value
     return repr(obj)
 
+
 class Map(dict):
     def __str__(self):
         map_ = ", ".join(f"{repr_(k)}: {repr_(v)}" for k, v in self.items())
         return f"{{{map_}}}"
+
     def __repr__(self):
         return f"<map at {id(self)}>"
+
+    def flatten(self, parent_key='', separator='_'):
+        def f(dictionary, parent_key='', separator='_'):
+            items = []
+            for key, value in dictionary.items():
+                new_key = parent_key + separator + key if parent_key else key
+                if isinstance(value, MutableMapping):
+                    items.extend(f(value, new_key, separator=separator).items())
+                else:
+                    items.append((new_key, value))
+            return dict(items)
+
+        return Map(f(self, parent_key, separator))
+
 
 
 class File:

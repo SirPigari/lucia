@@ -3,14 +3,21 @@ Var Version
 !include "MUI2.nsh"
 
 Outfile "../installer/LuciaInstaller.exe"
-InstallDir "$LOCALAPPDATA\\Programs\\LuciaAPL"
+InstallDir "$LOCALAPPDATA\Programs\LuciaAPL"
 RequestExecutionLevel admin
 Icon "../env/assets/installer2.ico"  ; Fixed icon path
+SetOverwrite on
+
 
 Function .onInit
     StrCpy $Version "1.1.2"  ; Set version dynamically
     InitPluginsDir
     File /oname=$PLUGINSDIR\\options.ini "options.ini"  ; Updated relative path for options.ini
+    ${If} ${Errors}
+        System::Call "Kernel32::GetLastError() i() .r1"
+        MessageBox MB_ICONSTOP|MB_OK "Error code: $1 "
+        Quit
+    ${EndIf}
 FunctionEnd
 
 !define MUI_HEADERIMAGE
@@ -22,6 +29,9 @@ Name "Lucia-$Version"  ; Use the version in the installer name
 
 !define MUI_UNICON "../env/assets/installer3.ico"
 !define MUI_UNTITLE "Lucia - $Version"  ; Use the version in the installer title
+
+!define MUI_UNTEXT "LuciaAPL by SirPigari, v$Version"
+!define MUI_TEXT "LuciaAPL by SirPigari, v$Version"
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
@@ -35,6 +45,22 @@ Page custom InstallOptionsPage
 !insertmacro MUI_LANGUAGE "English"
 
 Section "Install Lucia"
+    ExecFailed:
+        ; Get the last error code
+        System::Call 'kernel32::GetLastError() i .r1'
+
+        ; Format the error message from the error code
+        System::Call 'kernel32::FormatMessage(i 0x00001000, i 0, i r1, i 0, t .r0, i 512, i 0)'
+
+        ; Show the error message
+        StrCpy $2 "Execution failed:$\r$\n$INSTDIR\env\bin\lucia.exe$\r$\n$\r$\nError code: $1$\r$\nMessage: $0"
+        MessageBox MB_OK|MB_ICONSTOP "$2"
+        Quit
+
+    IfFileExists "$INSTDIR\env\bin\lucia.exe" 0 +2
+    Delete "$INSTDIR\env\bin\lucia.exe"
+
+
     SetOutPath "$INSTDIR"
 
     ; Exclude specific files and directories (relative paths)
@@ -43,23 +69,24 @@ Section "Install Lucia"
          /x env/Lib/Builtins/__pycache__ /x *.pyc /x tests \
          /x env/assets/fake_temp.zip /x env/assets/python_installer.exe \
          /x installer.py /x env/build /x env/bin/lucia_installer.exe \
-         /x installer "E:\\LuciaAPL\\*.*"
+         /x installer "C:\Users\sirpigari\Desktop\Projects\LuciaAPL\*.*"
 
     ; Run lucia.exe with --activate if the user selected the "Activate" option
     ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 2" "State"
     StrCmp $0 "1" 0 +2
-    Exec '\"$INSTDIR\\env\\bin\\lucia.exe" --activate'
+    Exec '"$INSTDIR\\env\\bin\\lucia.exe" --activate'
+    IfErrors ExecFailed  ; Jump to ExecFailed label if there's an error
 
-    ; Run lucia.exe after installation if the user selected the "Run Lucia" option
-    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
-    StrCmp $0 "1" 0 +2
-    Exec '\"$INSTDIR\\env\\bin\\lucia.exe"'
-    Exec '\"$INSTDIR\\env\\bin\\lucia.exe"'
+    ; ; Run lucia.exe after installation if the user selected the "Run Lucia" option
+    ; ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
+    ;     StrCmp $0 "1" 0 +2
+    ;     Exec '\"$INSTDIR\\env\\bin\\lucia.exe\"'
+    ;     IfErrors ExecFailed  ; Jump to ExecFailed label if there's an error
 
     ; Add to PATH if checkbox is selected
     ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 1" "State"
-    StrCmp $0 "1" 0 +2
-    Call AddToPath
+        StrCmp $0 "1" 0 +2
+        Call AddToPath
 
     WriteUninstaller "$INSTDIR\\uninstall.exe"
 SectionEnd

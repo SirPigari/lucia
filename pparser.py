@@ -1,3 +1,5 @@
+from typing import Dict
+
 
 def get_type_default(type_):
     if type_ == "int":
@@ -69,9 +71,31 @@ class Parser:
             self.next()
             return None
 
+        # keywords
+
         if self.token == ('OPERATOR', '#'):
             self.next()
             return self.parse_predef()
+
+        if self.token == ('IDENTIFIER', 'Exception'):
+            self.next()
+            exception_name = self.token[1]
+            self.next()
+            return {
+                "type": "EXCEPTION_DEFINITION",
+                "exc_type": "Exception",
+                "name": exception_name
+            }
+
+        if self.token == ('IDENTIFIER', 'Warning'):
+            self.next()
+            exception_name = self.token[1]
+            self.next()
+            return {
+                "type": "EXCEPTION_DEFINITION",
+                "exc_type": "Warning",
+                "name": exception_name
+            }
 
         if self.token == ('IDENTIFIER', 'if'):
             return self.parse_if_statement()
@@ -162,7 +186,7 @@ class Parser:
             self.next()
             return expression
 
-        if self.token == ('OPERATOR', '!'):
+        if self.token == ('OPERATOR', '!') or self.token == ('OPERATOR', 'not') or self.token == ('OPERATOR', 'nein'):
             self.next()
             return {"type": "OPERATION", "left": {"type": "BOOLEAN", "value": "null", "literal_value": None}, "operator": "!", "right": self.parse_expression()}
 
@@ -368,7 +392,7 @@ class Parser:
             name = self.token[1]
             self.next()
             variable_type = "any"
-            default_value = None
+            default_value = {"BOOLEAN": "null", "literal_value": None}
             if self.token == ('SEPARATOR', ':'):
                 self.next()
                 variable_type = self.token[1]
@@ -452,15 +476,21 @@ class Parser:
     def parse_operation(self):
         left = self.parse_operand()
         while self.token and self.token[0] == 'OPERATOR':
-            operator = self.token[1]
-            self.next()
-            right = self.parse_expression()
+            operator = self.parse_operator()
+            right = self.parse_operand()
             left = {"type": "OPERATION", "left": left, "operator": operator, "right": right}
         return left
 
     def parse_operand(self):
         if self.token[0] == 'NUMBER':
             value = {"type": "NUMBER", "value": float(self.token[1])}
+        elif self.token == ('OPERATOR', '-') and self.get_next() and self.get_next()[0] == 'NUMBER':
+            self.next()
+            value = {"type": "NUMBER", "value": -float(self.token[1])}
+        elif self.token == ('SEPARATOR', '('):
+            self.next()
+            value = self.parse_expression()
+            self.check_for('SEPARATOR', ')')
         elif self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '['):
             name = self.token[1]
             self.next()
@@ -474,6 +504,11 @@ class Parser:
                 "name": name,
                 "index": index
             }
+        elif self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '.'):
+            value = self.parse_property()
+            self.pos -= 1
+        elif self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '('):
+            value = self.parse_function_call()
         elif self.token[0] == 'IDENTIFIER':
             value = {"type": "VARIABLE", "name": self.token[1]}
         elif self.token[0] == 'STRING':
@@ -545,7 +580,7 @@ class Parser:
         self.next()
         variable = self.token[1]
         self.next()
-        self.check_for('IDENTIFIER', 'in')
+        self.check_for('OPERATOR', 'in')
         self.next()
         iterable = self.parse_expression()
         self.check_for('SEPARATOR', ')')
@@ -776,3 +811,21 @@ class Parser:
             return {"type": "PREDEF", "predef_type": "DEL", "a": b}
         else:
             raise SyntaxError(f"Predef '{self.token[1]}' is not valid.")
+
+    def parse_operator(self):
+        token = self.token[1]
+        operator_map = {
+            "is": "==",
+            "and": "&&",
+            "or": "||",
+            "not": "!",
+            "isnt": "!=",
+            "isn't": "!=",
+            "nein": "!=",
+        }
+        if token in operator_map:
+            operator = operator_map[token]
+        else:
+            operator = token
+        self.next()
+        return operator

@@ -42,13 +42,13 @@ os.chdir("../")
 
 BUILD_PATH = os.path.abspath("env/build").replace("\\", "/")
 BIN_PATH = os.path.abspath("env/bin").replace("\\", "/")
-INSTALLER_ICON = os.path.abspath("env/assets/installer.ico").replace("\\", "/")
+LUCIA_ICON = os.path.abspath("env/assets/lucia_icon_rounded.ico").replace("\\", "/")
 INSTALLER_ICON2 = os.path.abspath("env/assets/installer2.ico").replace("\\", "/")
 DATA_PATH = os.path.abspath(".").replace("\\", "/")
 FILE = os.path.abspath("lucia.py").replace("\\", "/")
 FILE2 = os.path.abspath("installer.py").replace("\\", "/")
 EXE_PATH = os.path.join(BIN_PATH, "lucia.exe").replace("\\", "/")
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 
 kill_process("lucia.exe")
 
@@ -56,13 +56,13 @@ print("Building lucia.exe...")
 
 print(BUILD_PATH)
 print(BIN_PATH)
-print(INSTALLER_ICON)
+print(LUCIA_ICON)
 print(DATA_PATH)
 print(FILE)
 print(EXE_PATH)
 
 command = (f"python -m PyInstaller --noconfirm --onefile --clean --log-level TRACE "
-           f"--icon={INSTALLER_ICON} "
+           f"--icon={LUCIA_ICON} "
            f"--distpath \"{BIN_PATH}\" --workpath \"{BUILD_PATH}\" "
            f"--specpath \"{BUILD_PATH}\" \"{FILE}\""
            )

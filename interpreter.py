@@ -31,8 +31,6 @@ def find_closest_match(word_list, target_word):
 
     word_list = [word for word in word_list if word is not None]
 
-    print(word_list, target_word)
-
     closest_match = difflib.get_close_matches(target_word, word_list, n=1)
     return closest_match[0] if closest_match else None
 
@@ -260,6 +258,7 @@ class Interpreter:
             "OBJECTDECLARATION": self.handle_object_declaration,
 
             # OTHER
+            "EXCEPTION_DEFINITION": self.handle_exception_definition,
             "COMMENT": self.handle_comment,
             "NAMEDARG": lambda s: {s["name"]: self.evaluate(s["value"])},
             "ASSIGNMENT_INDEX": self.handle_assignment_index,
@@ -268,7 +267,6 @@ class Interpreter:
         }
 
         if not isinstance(statement, dict):
-            print(statement)
             raise SyntaxError(f"Unexpected statement: {statement}")
         statement_type = statement["type"]
         if statement_type not in statement_mapping:
@@ -397,10 +395,11 @@ class Interpreter:
     def handle_return(self, statement):
         return_value = self.evaluate(statement["value"])
         if not self.stack:
-            raise ValueError("Stack is empty, unable to access previous function context.")
+            raise SyntaxError("Return statement outside of function.")
         self.debug_log(f"<Function {self.stack[-1].get("name", null)} returned {return_value}>")
         self.is_returning = True
         self.return_value = return_value
+        self.stack[-1]["return_value"] = return_value
         return self.return_value
 
     def handle_variable_declaration(self, statement):
@@ -418,9 +417,11 @@ class Interpreter:
             elif isinstance(var, b_classes.Function):
                 if var.modifiers["is_final"]:
                     raise PermissionError(f"Function '{statement["name"]}' is final and cannot be re-declared.")
-        if value:
+        if not value is None:
             if not self.check_type(get_type(value), type):
                 raise TypeError(f"Expected type '{type}', but got '{get_type(value)}'")
+            if type == "int":
+                value = b_classes.Int(value)
             self.debug_log(f"<Variable '{statement['name']}' declared with value {repr(value)}.>")
         else:
             self.debug_log(f"<Variable '{statement['name']}' declared.>")
@@ -480,9 +481,9 @@ class Interpreter:
 
         decimal.getcontext().prec = prec
 
-        if isinstance(left, float):
+        if isinstance(left, float) or isinstance(left, int):
             left = b_classes.Decimal(left)
-        if isinstance(right, float):
+        if isinstance(right, float) or isinstance(right, int):
             right = b_classes.Decimal(right)
 
         if isinstance(left, list):
@@ -493,6 +494,7 @@ class Interpreter:
         return self.make_operation(left, right, operator)
 
     def make_operation(self, left, right, operator):
+        self.debug_log(f"<Operation: {left} {operator} {right}>")
         if operator == "+":
             return left + right
         elif operator == "-":
@@ -566,6 +568,10 @@ class Interpreter:
             return left
         elif operator == "abs":
             return abs(right)
+        elif operator == "xor":
+            return b_classes.Boolean((left and not right) or (not left and right))
+        elif operator == "xnor":
+            return b_classes.Boolean((left and right) or (not left and not right))
         else:
             raise SyntaxError(f"Unexpected operator: {operator}")
 
@@ -574,7 +580,7 @@ class Interpreter:
             l = []
             for element in statement["elements"]:
                 l.append(self.evaluate(element))
-            return l
+            return b_classes.List(l)
         elif statement["iterable_type"] == "LIST_COMPLETION":
             pattern = statement["pattern"]
             end = self.evaluate(statement["end"])
@@ -643,6 +649,9 @@ class Interpreter:
             exception = getattr(builtins, statement["from"]["name"])
         else:
             raise NameError(f"Name '{statement['from']['name']}' is not defined.")
+        if issubclass(exception, Warning) or isinstance(exception, Warning):
+            self.warn(self.evaluate(statement["value"]), exception)
+            return
         raise exception(self.evaluate(statement["value"]))
 
     def handle_if_statement(self, statement):
@@ -841,19 +850,18 @@ class Interpreter:
                     f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined. Did you mean: '{statement['object_name']}.{closest_match}'?")
             raise NameError(f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined.")
         else:
-            print(statement)
             raise SyntaxError(f"Unexpected property type: {statement['property']['type']}")
 
     def call_object_function(self, object_, function_name, pos_args, named_args, object_name=None, custom_name=None):
         if not isinstance(object_, b_classes.Object):
             if isinstance(object_, b_classes.Variable):
                 object_ = object_.value
-            if hasattr(object_, function_name):
-                function = getattr(object_, function_name)
-                if callable(function):
-                    return function(*pos_args, **named_args)
-                else:
-                    raise TypeError(f"Object '{object_}' has no function '{function_name}'.")
+        if hasattr(object_, function_name):
+            function = getattr(object_, function_name)
+            if callable(function):
+                return function(*pos_args, **named_args)
+            else:
+                raise TypeError(f"Object '{object_}' has no function '{function_name}'.")
         function = object_._data.get(function_name, null)
         if function == null:
             closest_match = find_closest_match(object_._data.keys(), function_name)
@@ -1050,3 +1058,13 @@ class Interpreter:
             if ret is not None:
                 self.debug_log(f"<Object {name} returned {repr(ret)}>")
             return b_classes.Object(is_builtin=True, object=ret, custom_str=str(ret))
+
+        body = object_.init
+
+    def handle_exception_definition(self, statement):
+        name = statement["name"]
+        self.debug_log(f"<Exception '{name}' defined>")
+        if statement["exc_type"] == "Exception":
+            self.variables[name] = b_exceptions.MakeException(name, b_exceptions.LuciaException)
+        elif statement["exc_type"] == "Warning":
+            self.variables[name] = b_exceptions.MakeWarning(name, b_exceptions.LuciaWarning)

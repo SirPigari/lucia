@@ -345,7 +345,7 @@ Lucia allows pattern-based list generation inside ranges:
 If the pattern is not recognized, a `ListPatternRecognitionWarning` is raised, and the list remains unchanged:
 
 ```lucia
-[1, 2, 6...14]  // Warning: Unrecognized pattern, returns [1, 2, 6, 14]
+[1, 2, 6...14]      // Warning: Unrecognized pattern, returns [1, 2, 6, 14]
 ```
 
 ### While Loop
@@ -384,7 +384,7 @@ The `try` block is used to attempt the operation that might throw an error, and 
 ```lucia
 try:
     result = divide(10, 0)
-end catch e:
+end catch (e):
     print("Error: ", e)
 end
 ```

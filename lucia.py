@@ -108,6 +108,9 @@ def execute_file(file_path, exit=True):
     interpreter_.interpret(parser.statements)
 
 def activate():
+    if config.get("moded", False):
+        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is moded and cannot be activated. Set 'moded' to false to activate enviroment.\033[0m")
+        return
     ENV_PATH = os.path.join(WORKING_DIR, 'env')
     config_to_place = {
         "moded": False,
@@ -133,6 +136,8 @@ def activate():
             "info": "#9209B3"
         }
     }
+
+    os.remove(os.path.join(ENV_PATH, "config.json"))
 
     with open(f"{ENV_PATH}/config.json", "w") as file:
         json.dump(config_to_place, file, indent=2)
@@ -190,9 +195,9 @@ check_config()
 
 expected_env = os.path.join(WORKING_DIR, 'env')
 if config.get('home_dir', PLACEHOLDER) != expected_env:
-    if config.get("moded", False):
-        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is not activated. Use 'env\\activate.py' to activate the environment. Please run the file again.\033[0m")
-        activate()
+    print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is not activated. Use 'env\\activate.py' to activate the environment. Please run the file again.\033[0m")
+    activate()
+    clear_exit(0)
 
 os.chdir(config.get('home_dir', WORKING_DIR))
 
@@ -233,7 +238,11 @@ if len(sys.argv) > 1:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}All tests have been executed.\033[0m")
         clear_exit(0)
     if "--activate" in sys.argv:
-        activate()
+        try:
+            activate()
+        except Exception as e:
+            print(f"{hex_to_ansi(color_map.get('exception', '#F44350'))}Failed to activate environment:\n{e}\33[0m")
+            clear_exit(1)
         clear_exit(0)
     if "--info" in sys.argv:
         info = {

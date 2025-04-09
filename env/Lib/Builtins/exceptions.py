@@ -1,3 +1,16 @@
+def MakeException(name, base=Exception):
+    cls = type(name, (base,), {
+        '__init__': lambda self, message: super(cls, self).__init__(message),
+        '__str__': lambda self: f'{self.args[0]}' if self.args else f'{self.__class__.__name__}'
+    })
+    return cls
+def MakeWarning(name, base=Warning):
+    cls = type(name, (base,), {
+        '__init__': lambda self, message: super(cls, self).__init__(message),
+        '__str__': lambda self: f'{self.args[0]}' if self.args else f'{self.__class__.__name__}'
+    })
+    return cls
+
 class LuciaException(Exception):
     pass
 

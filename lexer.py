@@ -27,6 +27,25 @@ OPERATORS = [
     "~",
 ]
 
+WORD_OPERATORS = [
+    "in",
+    "or"
+    "and",
+    "not",
+    "isnt",
+    "isn't",
+    "is",
+    "xor",
+    "xnor",
+    "nein",
+]
+
+OPERATORS = sorted(OPERATORS, key=lambda x: -len(x))
+WORD_OPERATORS = sorted(WORD_OPERATORS, key=lambda x: -len(x))
+
+OPERATOR_PATTERN = r'(' + '|'.join(re.escape(op) for op in OPERATORS) + r')|' + \
+                   r'\b(?:' + '|'.join(re.escape(op) for op in WORD_OPERATORS) + r')\b'
+
 # Token specifications
 TOKEN_SPECIFICATION = [
     ('STRING', r'".*?"|\'.*?\''),                                                   # Double or single quoted string
@@ -34,8 +53,8 @@ TOKEN_SPECIFICATION = [
     ('COMMENT_INLINE', r'<#.*?#>'),                                                 # In-line comment
     ('COMMENT_SINGLE', r'//.*'),                                                    # Single-line comment
     ('COMMENT_MULTI', r'/\*[\s\S]*?\*/'),                                           # Multi-line comment (replaces DOTALL flag)
-    ('IDENTIFIER', r'\b[a-zA-Z_]\w*\b'),                                            # Identifiers (variable/function names)
-    ('OPERATOR', r'|'.join(re.escape(op) for op in OPERATORS)),                     # Operators
+    ('OPERATOR', OPERATOR_PATTERN),                                                  # Operators
+    ('IDENTIFIER', r'\bnon-static\b|\b[a-zA-Z_]\w*\b'),                             # Identifiers (variable/function names)
     ('NUMBER', r'-?\b\d+(\.\d+)?\b'),                                               # Integer or decimal number
     ('SEPARATOR', r'\.\.\.|[(){}\[\];:.,]'),                                        # Separators
     ('WHITESPACE', r'\s+'),                                                         # Whitespace
