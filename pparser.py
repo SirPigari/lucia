@@ -409,7 +409,9 @@ class Parser:
         body = []
         if self.token == ('SEPARATOR', ':'):
             self.next()
-        while self.token and not (self.token == ('IDENTIFIER', 'end')):
+        while not (self.token == ('IDENTIFIER', 'end')):
+            if self.token == (None, None):
+                raise SyntaxError("Body was never closed. Maybe you are missing 'end' keyword.")
             body.append(self.parse_expression())
         return body
 

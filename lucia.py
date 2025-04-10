@@ -107,6 +107,8 @@ def execute_file(file_path, exit=True):
         if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
             debug_log(f"Statements generated: {parser.statements}")
         interpreter_ = interpreter.Interpreter(config, file_path)
+    except SyntaxError as e:
+        raise e
     except Exception as e:
         raise RuntimeError(f"Failed to parse file '{file_path}'. Error: {e}")
     interpreter_.interpret(parser.statements)
