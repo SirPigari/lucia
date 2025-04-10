@@ -43,7 +43,6 @@ Section "Install Lucia"
     IfFileExists "$INSTDIR\env\bin\lucia.exe" 0 +2
     Delete "$INSTDIR\env\bin\lucia.exe"
 
-
     SetOutPath "$INSTDIR"
 
     ; Exclude specific files and directories (relative paths)
@@ -54,24 +53,17 @@ Section "Install Lucia"
          /x installer.py /x env/build /x env/bin/lucia_installer.exe \
          /x installer "C:\Users\sirpigari\Desktop\Projects\LuciaAPL\*.*"
 
-    ; Run lucia.exe after installation if the user selected the "Run Lucia" option
-    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
+    IfErrors 0 +3
+    MessageBox MB_OK|MB_ICONSTOP "Error: Failed to copy files."
+    Abort
+
+
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 2" "State"
         StrCmp $0 "1" 0 +2
-        nsExec::ExecToStack "where wt"
         Pop $0
 
-        StrCmp $0 "" 0 +2
+        ExecWait 'cmd.exe /C ""$INSTDIR\env\bin\lucia.exe" --no-color --activate"'
 
-        MessageBox MB_OK 'cmd.exe /C "$INSTDIR\env\bin\lucia.exe"'
-        ExecWait 'cmd.exe /C "$INSTDIR\env\bin\lucia.exe"'
-        Goto Done2
-
-        MessageBox MB_OK 'wt ""$INSTDIR\env\bin\lucia.exe""'
-        ExecWait 'wt ""$INSTDIR\env\bin\lucia.exe""'
-
-        Done2:
-
-    ; Add to PATH if checkbox is selected
     ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 1" "State"
         StrCmp $0 "1" 0 +3
         Push "$INSTDIR\env\bin"
@@ -197,19 +189,12 @@ FunctionEnd
 Function .onInstSuccess
     ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
     StrCmp $0 "1" 0 +2
-
-    nsExec::ExecToStack "where wt"
     Pop $0
-
     StrCmp $0 "" 0 RunWithCMD
-
-    MessageBox MB_OK 'wt "$INSTDIR\env\bin\lucia.exe"'
-    ExecShell "" "wt" '""$INSTDIR\env\bin\lucia.exe""'
     Goto EndLaunch
 
 RunWithCMD:
-    MessageBox MB_OK 'cmd.exe /c "$INSTDIR\env\bin\lucia.exe"'
-    ExecShell "" "cmd.exe" '/C "$INSTDIR\env\bin\lucia.exe"'
+    ExecShell "" "cmd.exe" '/C ""$INSTDIR\env\bin\lucia.exe" --no-color"'
 
 EndLaunch:
 FunctionEnd

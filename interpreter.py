@@ -134,7 +134,7 @@ class Interpreter:
     def warn(self, message, category, stacklevel=3):
         if self.config.get('warnings', True):
             if self.config.get('use_lucia_traceback', True):
-                print(f"{hex_to_ansi(self.config.get("color_scheme", {}).get('warning', '#FFC107'), self.config)}-> File '{self.filename}' warning:\n{str(category.__name__)}: {message}\33[0m")
+                print(f"{hex_to_ansi(self.config.get("color_scheme", {}).get('warning', '#FFC107'), self.config)}-> File '{self.filename}' warning:\n{str(category.__name__)}: {message}{hex_to_ansi("reset", self.config)}")
                 return
             else:
                 warnings.warn(message, category, stacklevel=stacklevel)
@@ -170,7 +170,7 @@ class Interpreter:
     def debug_log(self, *args):
         if self.config.get('debug', False):
             if self.config.get('debug_mode', 'normal') == 'normal' or self.config.get('debug_mode', 'normal') == 'full':
-                print(f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'), self.config)}{''.join(map(str, args))}\033[0m")
+                print(f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'), self.config)}{''.join(map(str, args))}{hex_to_ansi("reset", self.config)}")
 
     def check_type(self, type_, expected=None, return_value=None):
         valid_types = b_variables.VALID_TYPES
@@ -442,7 +442,7 @@ class Interpreter:
                 raise NameError(f"Name '{name}' is not defined.")
         if self.repl:
             if not (self.stack and self.stack[-1]["name"] == "print"):
-                print(ret)
+                print(self.variables[name])
         return self.variables[name]
 
     def handle_assignment(self, statement):
@@ -948,7 +948,7 @@ class Interpreter:
     def handle_comment(self, statement):
         color = self.config.get("color_scheme", {}).get("comment", "#757575")
         ansi_color = hex_to_ansi(color, self.config)
-        print(f"{ansi_color}<{statement["value"]}>\033[0m")
+        print(f"{ansi_color}<{statement["value"]}>{hex_to_ansi("reset", self.config)}")
 
     def handle_assignment_index(self, statement):
         name = statement["name"]
