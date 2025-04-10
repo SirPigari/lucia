@@ -213,13 +213,13 @@ if len(sys.argv) > 1:
         print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Lucia-{config.get('version', '(version unknown)')} Interpreter\nUsage: lucia.py [file_path]\n\033[0m")
         clear_exit(0)
     if "--version" in sys.argv or "-v" in sys.argv:
-        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Lucia-{config.get('version', '(version unknown)')}\033[0m")
+        print(f"Lucia-{config.get('version', '(version unknown)')}")
         clear_exit(0)
     if "--config" in sys.argv:
-        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Config file path: {CONFIG_PATH}\033[0m")
+        print(f"Config file path: {CONFIG_PATH}")
         clear_exit(0)
     if "--home" in sys.argv:
-        print(f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Home directory: {config.get('home_dir', os.path.join(WORKING_DIR, 'env'))}\033[0m")
+        print(f"Home directory: {config.get('home_dir', os.path.join(WORKING_DIR, 'env'))}")
         clear_exit(0)
     if "--timer" in sys.argv:
         start_time = time.time()
@@ -254,6 +254,7 @@ if len(sys.argv) > 1:
         info = {
             "version": config.get('version', '(version unknown)'),
             "home_dir": config.get('home_dir', os.path.join(WORKING_DIR, 'env')),
+            "config_path": CONFIG_PATH,
         }
         for key, value in info.items():
             print(f"{key}: {value}")

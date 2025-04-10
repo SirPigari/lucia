@@ -49,7 +49,7 @@ You can also install Lucia using an installer provided on GitHub:
 4.  After installation, open a terminal and type:
     
     ```bash
-    lucia --version
+    lucia -v
     ```
     
     to verify that the installation was successful.
