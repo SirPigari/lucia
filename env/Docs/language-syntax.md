@@ -59,10 +59,10 @@ Content
     - [Object Declaration](#object-declaration)
     - [Object Usage](#object-usage)
     - [Property](#property)
-  - [Predefs](#predefs)
-    - [Predef Types](#predef-types)
-      - [1\. #alias](#1-alias)
-      - [2\. #del](#2-del)
+- [Predefs](#predefs)
+  - [Predef Types](#predef-types)
+    - [1\. #alias](#1-alias)
+    - [2\. #del](#2-del)
 - [Conclusion](#conclusion)
 
 
@@ -621,15 +621,15 @@ o.main()
 A property is any variable, function, or object that is called inside another. For example, `math.pi` is a variable property of the `math` module.
 
 Predefs
--------
+----------------
 
 Predefs are special commands in Lucia that allow you to modify or define certain tokens before they are sent to the interpreter. They are processed during the pre-interpretation phase of your code. All predefs start with the # symbol.
 
-### Predef Types
-#### 1\. `#alias`
+## Predef Types
+### 1\. `#alias`
 The `#alias` predef allows you to create an alias, which means defining the first argument to be equivalent to the second argument.
 
-##### Example:
+#### Example:
 
 ```lucia
 #alias true -> false
@@ -637,10 +637,10 @@ The `#alias` predef allows you to create an alias, which means defining the firs
 
 This command makes `true` behave as `false` throughout the code. After this alias, any reference to `true` will be treated as `false`.
 
-#### 2\. `#del`
+### 2\. `#del`
 The `#del` predef removes an alias that has been previously defined with `#alias`. It restores the original meaning of the token.
 
-##### Example:
+#### Example:
 
 ```lucia
 #del true
