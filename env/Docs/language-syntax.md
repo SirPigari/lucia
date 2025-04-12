@@ -95,7 +95,7 @@ lucia hello.lucia
 
 Output:
 
-```lucia
+```
 Hello, World!
 ```
 
@@ -188,10 +188,10 @@ In addition to the standard arithmetic, comparison, and logical operators, Lucia
 *   `/`: Division
 *   `^`: Exponentiation
 *   `%`: Modulo (remainder of division)
-*   `\==`: Equality comparison
-*   `\>`: Greater than
+*   `==`: Equality comparison
+*   `>`: Greater than
 *   `<`: Less than
-*   `\>=`: Greater than or equal to
+*   `>=`: Greater than or equal to
 *   `<=`: Less than or equal to
 *   `!=`: Not equal to
 *   `&&`: Logical AND
@@ -199,8 +199,8 @@ In addition to the standard arithmetic, comparison, and logical operators, Lucia
 *   `!`: Logical NOT
 *   `~`: In operator (checks if left value exists in a list or map)
 *   `+=`: Add and assign
-*   `\-=`: Subtract and assign
-*   `\*=`: Multiply and assign
+*   `-=`: Subtract and assign
+*   `*=`: Multiply and assign
 *   `/=`: Divide and assign
 *   `abs`: Absolute value, used as `|x|`
 
@@ -453,6 +453,14 @@ end catch (e):
 end
 ```
 
+Also, you don't need to use the `catch` block if you don't want to handle the error:
+
+```lucia
+try:
+    result = divide(10, 0)
+end
+```
+
 ### Default Error Type
 
 If no specific error type is mentioned, Lucia will raise an error from `LuciaException` by default:
@@ -648,6 +656,23 @@ The `#del` predef removes an alias that has been previously defined with `#alias
 
 This command removes the alias for `true`, making it behave as it originally did, i.e., `true` again.
 
+#### 3\. `#config`
+The `#config` predef allows you to modify the configuration of the interpreter. It can be used to set various options or preferences.
+*Example:*
+
+```lucia
+#config "debug" -> true
+```
+
+Can be reset to default by:
+
+```lucia
+#config debug reset
+```
+
+This command sets the debug mode to true, enabling additional debugging features in the interpreter.
+It's the same as using the [`config.json`](../config.json) file. (See [Config guide](config-guide.md))
+
 --------------
 
 You can use predefs to modify the behavior of built-in tokens and tailor the language to your specific needs before the interpreter executes your code.
@@ -656,6 +681,6 @@ You can use predefs to modify the behavior of built-in tokens and tailor the lan
 # Conclusion
 Lucia is a straightforward language designed for ease of use and flexibility. You’ve covered essential topics like variable declaration, control flow, functions, error handling, and objects. The syntax promotes clarity, and the use of blocks and indentation improves code organization.
 
-To move forward, continue practicing with more complex projects, experiment with its features, and explore how to structure programs using Lucia’s modular capabilities.
+To move forward, continue practicing with more complex projects, experiment with its features, and explore how to structure programs using Lucia’s modular capabilities. (See [Examples](examples))
 
 Happy coding with Lucia.

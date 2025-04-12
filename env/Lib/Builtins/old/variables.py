@@ -1,1 +1,0 @@
-VALID_TYPES: set = {"int", "str", "bool", "void", "float", "any", "null", "list", "object", "map", "function"}
