@@ -8,7 +8,8 @@ import warnings
 import platform
 
 WORKING_DIR = os.path.dirname(__file__)
-VERSION = "1.1.2"
+VERSION = "1.2"
+CALL_PATH = os.getcwd()
 
 if hasattr(sys, 'frozen'):
     sys.path += [os.path.abspath(sys._MEIPASS)]
@@ -27,8 +28,6 @@ import interpreter
 import pparser
 import lexer
 from env.Lib.Builtins.exceptions import WrappedException
-
-CALL_PATH = os.getcwd()
 
 def clear_exit(code=0):
     globals_copy = globals().copy()

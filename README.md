@@ -1,4 +1,4 @@
-# Lucia 1.2
+# Lucia 1.2.0
 
 Lucia is a simple, lightweight, and fast programming language made in python.
 
@@ -27,7 +27,27 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
 
 ## Changelog:
 ### 1.2.0
-- 
+- Added `flatten` function to `list` and `map` modules:
+- Added `Exception` and `Warning` keywords:
+  - `Exception` is used to create new exceptions.
+  - `Warning` is used to create new warnings.
+- Added `__type__` function to exceptions and warnings
+- Fixed errors while importing modules
+- Added more tests to `test` library
+- Updated installer
+- Added new operators:
+  - `in` - Checks if a value is in a list or map.
+  - `or` - Logical OR operator.
+  - `and` - Logical AND operator.
+  - `not` - Logical NOT operator.
+  - `isnt` or `isn't` - Checks if two values are not equal.
+  - `is` - Checks if two values are equal.
+  - `xor` - Logical XOR operator.
+  - `xnor` - Logical XNOR operator.
+- Updated `lucia.py`
+- Added error handling for missing `end` keyword
+- Added `#config` predef
+- Modified how try-catch works ([see here](env/Docs/language-syntax.md#try-and-catch))
 ### 1.1.2
 - Fixed many bugs
 - Added documentation
