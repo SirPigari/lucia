@@ -1,5 +1,5 @@
 {
-  "moded": true,
+  "moded": false,
   "debug": true,
   "debug_mode": "full",
   "supports_color": true,
@@ -13,7 +13,7 @@
     ".lc",
     ".l"
   ],
-  "home_dir": "C:\\Users\\sirpigari\\Desktop\\Projects\\LuciaAPL\\env",
+  "home_dir": "C:\\LuciaAPL\\env",
   "recursion_limit": 9999,
   "version": "1.1.2",
   "color_scheme": {

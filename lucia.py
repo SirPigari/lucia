@@ -28,6 +28,7 @@ import pparser
 import lexer
 from env.Lib.Builtins.exceptions import WrappedException
 
+CALL_PATH = os.getcwd()
 
 def clear_exit(code=0):
     globals_copy = globals().copy()
@@ -101,6 +102,10 @@ def input_exec():
 def execute_file(file_path, exit=True):
     try:
         global interpreter, pparser, lexer
+        if os.path.exists(file_path):
+            file_path = os.path.abspath(file_path)
+        else:
+            file_path = os.path.join(CALL_PATH, file_path)
         with open(file_path, 'r', encoding='utf-8') as file:
             code = file.read()
         tokens = lexer.lexer(code, include_comments=config.get('print_comments', False))
@@ -246,6 +251,9 @@ if config.get('home_dir', PLACEHOLDER) != expected_env:
             f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is not activated. Use 'env\\activate.py' to activate the environment. Please run the file again.{hex_to_ansi("reset")}")
         activate()
         clear_exit(0)
+    else:
+        print(
+            f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is moded. Use 'env\\activate.py' to activate the environment. Please run the file again.{hex_to_ansi("reset")}")
 
 os.chdir(config.get('home_dir', WORKING_DIR))
 
@@ -271,10 +279,6 @@ if len(sys.argv) > 1:
         print(
             f"\n{hex_to_ansi(color_map.get('info', '#D10CFF'))}Execution time: {time.time() - start_time:.4f} seconds{hex_to_ansi("reset")}")
         clear_exit(0)
-    if "--use-old-interpreter" in sys.argv:
-        print(
-            f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Using old interpreter.\nRemove '--use-old-interpreter' to use the default.\n{hex_to_ansi("reset")}")
-        import env.assets.interpreter_old as interpreter
     if "--test-all-tests" in sys.argv:
         path = os.path.join(config.get('home_dir', WORKING_DIR), 'Docs\\tests')
         lucia_ext = config.get('lucia_file_extensions', [".lucia", ".luc", ".lc", ".l"])

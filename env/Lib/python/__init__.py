@@ -1,7 +1,19 @@
-def pyexec(__code, __globals, __locals):
-	exec(__code, __globals, __locals)
+def pyexec(__code, __globals=None, __locals=None):
+	if __globals is None:
+		__globals = {}
+	if __locals is None:
+		__locals = {}
+	__locals = dict(__locals)
+	__globals = dict(__globals)
+	return exec(__code, __globals, __locals)
 
-def pyeval(__code, __globals, __locals):
+def pyeval(__code, __globals=None, __locals=None):
+	if __globals is None:
+		__globals = {}
+	if __locals is None:
+		__locals = {}
+	__locals = dict(__locals)
+	__globals = dict(__globals)
 	return eval(__code, __globals, __locals)
 
 def pycompile(__code, __filename, __mode):

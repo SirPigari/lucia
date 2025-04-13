@@ -1,3 +1,4 @@
+import copy
 import difflib
 import os
 from env.Lib.Builtins import functions as b_functions
@@ -127,6 +128,7 @@ class Interpreter:
         if not filename:
             self.filename = "<stdin>"
         self.config = config
+        self.lit_config = copy.deepcopy(self.config)
         self.return_value = b_classes.Boolean(None)
         self.is_returning = False
         self.stack = []
@@ -472,8 +474,9 @@ class Interpreter:
         left = self.evaluate(statement["left"])
         right = self.evaluate(statement["right"])
         operator = statement["operator"]
-        if isinstance(left, b_classes.Variable):
-            left = left.value
+        if not operator in ["+=", "-=", "*=", "/="]:
+            if isinstance(left, b_classes.Variable):
+                left = left.value
         if isinstance(right, b_classes.Variable):
             right = right.value
 
@@ -506,6 +509,8 @@ class Interpreter:
         elif operator == "*":
             return left * right
         elif operator == "/":
+            if right == 0:
+                raise ZeroDivisionError("Division by zero.")
             return left / right
         elif operator == "^":
             return left ** right
@@ -653,6 +658,8 @@ class Interpreter:
             exception = getattr(builtins, statement["from"]["name"])
         else:
             raise NameError(f"Name '{statement['from']['name']}' is not defined.")
+        if isinstance(exception, b_classes.Variable):
+            exception = exception.value
         if issubclass(exception, Warning) or isinstance(exception, Warning):
             self.warn(self.evaluate(statement["value"]), exception)
             return
@@ -808,12 +815,14 @@ class Interpreter:
             self.interpret(statement["body"])
         except b_exceptions.LuciaException as e:
             self.debug_log(f"<Exception caught: {repr(e)}>")
-            self.variables[statement["exception_variable"]] = e
+            if statement["exception_variable"]:
+                self.variables[statement["exception_variable"]] = e
             self.interpret(statement["catch_body"])
         except Exception as e:
             self.debug_log(f"<Exception caught: {repr(e)}>")
             wrapped_exception = b_exceptions.WrappedException(e)
-            self.variables[statement["exception_variable"]] = wrapped_exception
+            if statement["exception_variable"]:
+                self.variables[statement["exception_variable"]] = wrapped_exception
             self.interpret(statement["catch_body"])
 
     def handle_property(self, statement):
@@ -831,23 +840,27 @@ class Interpreter:
             pos_args = [self.evaluate(pos_arg) for pos_arg in statement["property"]["pos_arguments"]]
             named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
                           statement["property"]["named_arguments"]}
+            if hasattr(object_, name_):
+                function = getattr(object_, name_)
+                if callable(function):
+                    return function(*pos_args, **named_args)
+                else:
+                    raise TypeError(f"Object '{object_}' has no function '{name_}'.")
             return self.call_object_function(object_, name_, pos_args, named_args, statement["object_name"])
         elif statement["property"]["type"] == "VARIABLE":
             self.debug_log(f"<Property '{statement['object_name']}.{statement['property']['name']}' accessed>")
             if not object_:
                 raise NameError(f"Object '{statement['object_name']}' is not defined.")
-            if not isinstance(object_, b_classes.Object):
-                raise TypeError(f"Object '{statement['object_name']}' is not supported.")
+            if hasattr(object_, statement["property"]["name"]):
+                return getattr(object_, statement["property"]["name"], null)
             if statement["property"]["name"] in object_._data:
-                ret = object_._data.get(statement["property"]["name"], b_classes.Boolean(None))
+                if not isinstance(object_, b_classes.Object):
+                    raise TypeError(f"Object '{statement['object_name']}' is not supported.")
+                ret = object_._data.get(statement["property"]["name"], null)
                 if self.repl:
                     if not (self.stack and self.stack[-1]["name"] == "print"):
                         print(ret)
                 return ret
-            elif statement["property"]["name"] in object_._data:
-                return b_classes.Function(f"{statement["object_name"]}.{statement["property"]["name"]}",
-                                          object_.get("functions", {}).get(statement["property"]["name"],
-                                                                           b_classes.Boolean(None)))
             closest_match = find_closest_match(object_["variables"].keys(), statement["property"]["name"])
             if closest_match:
                 raise NameError(
@@ -1022,6 +1035,22 @@ class Interpreter:
                 self.debug_log(f"<Alias '{statement["a"][1]}' declared>")
         elif predef_type == "DEL":
             self.debug_log(f"<Alias '{statement["a"][1]}' removed.>")
+        elif predef_type == "CONFIG":
+            if statement["b"] == "{{ RESET }}":
+                self.config[statement["a"][1]] = self.lit_config.get(statement["a"][1], None)
+                self.debug_log(f"<Config '{statement["a"][1]}' reset to default>")
+                return self.config[statement["a"][1]]
+            elif statement["b"]:
+                b = self.evaluate(statement["b"])
+                if isinstance(b, b_classes.Boolean):
+                    b = b.literal
+                self.config[statement["a"][1]] = b
+                self.debug_log(f"<Config '{statement["a"][1]}' -> '{b}' set>")
+                return self.config[statement["a"][1]]
+            else:
+                return self.config[statement["a"][1]]
+        else:
+            raise SyntaxError(f"Predef '{self.token[1]}' is not valid.")
 
     def handle_index_operation(self, statement):
         left_name = statement["left"]["name"]

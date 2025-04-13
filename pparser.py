@@ -508,6 +508,7 @@ class Parser:
             self.pos -= 1
         elif self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '('):
             value = self.parse_function_call()
+            self.pos -= 1
         elif self.token[0] == 'IDENTIFIER':
             value = {"type": "VARIABLE", "name": self.token[1]}
         elif self.token[0] == 'STRING':
@@ -754,9 +755,20 @@ class Parser:
         self.next()
         self.check_for('SEPARATOR', ':')
         self.next()
-        body = self.parse_body()
-        self.check_for('IDENTIFIER', 'end')
-        self.next()
+        body = []
+        while not ((self.token == ('IDENTIFIER', 'catch')) or (self.token == ('IDENTIFIER', 'end'))):
+            if self.token == (None, None):
+                raise SyntaxError("'try' body was never closed. Maybe you are missing 'catch' keyword.")
+            body.append(self.parse_expression())
+        if self.token == ('IDENTIFIER', 'end'):
+            self.next()
+        if not self.token == ('IDENTIFIER', 'catch'):
+            return {
+                "type": "TRY",
+                "body": body,
+                "exception_variable": None,
+                "catch_body": []
+            }
         self.check_for('IDENTIFIER', 'catch')
         self.next()
         self.check_for('SEPARATOR', '(')
@@ -769,6 +781,8 @@ class Parser:
         self.check_for('SEPARATOR', ':')
         self.next()
         except_body = self.parse_body()
+        if self.token == ('SEPARATOR', ':'):
+            self.next()
         self.check_for('IDENTIFIER', 'end')
         self.next()
         return {
@@ -808,8 +822,25 @@ class Parser:
             else:
                 raise SyntaxError(f"Alias '{a}' does not exist.")
             return {"type": "PREDEF", "predef_type": "DEL", "a": b}
-        else:
-            raise SyntaxError(f"Predef '{self.token[1]}' is not valid.")
+        elif self.token == ('IDENTIFIER', 'config'):
+            self.next()
+            self.check_token()
+            a = self.token
+            self.next()
+            if not self.token == ('OPERATOR', '='):
+                if self.token == ('IDENTIFIER', 'reset'):
+                    self.next()
+                    return {"type": "PREDEF", "predef_type": "CONFIG", "a": a, "b": "{{ RESET }}"}
+                return {"type": "PREDEF", "predef_type": "CONFIG", "a": a, "b": None}
+            self.next()
+            self.check_token()
+            b = self.parse_expression()
+            if not a[0] == 'IDENTIFIER':
+                raise SyntaxError(f"Expected identifier but got '{b[1]}'")
+            if a[1] in self.config.keys():
+                return {"type": "PREDEF", "predef_type": "CONFIG", "a": a, "b": b}
+            else:
+                raise SyntaxError(f"Config '{b[1]}' is not valid.")
 
     def parse_operator(self):
         token = self.token[1]

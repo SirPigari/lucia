@@ -4,7 +4,25 @@ private static final fun you_cant_call_me_lol() -> int: print("you cant call me 
 
 public static final fun you_can_call_me() -> int: print("you can call me") return 0 end
 
-public static final fun test_all() -> int:
+public static final fun test_iterative(n: int) -> int:
+	i: int = 0
+	while (i < n):
+		i += 1
+	end
+	for (j in [0...n]):
+		i += j
+	end
+	return i
+end
+
+public static final fun test_recursive(n: int) -> int:
+	if (n == 0):
+		return 0
+	end
+	return n + test_recursive(n - 1)
+end
+
+public static final fun testAll() -> int:
     // tests many features of the language
     #alias function -> fun
     function test() -> int: return 0 end
@@ -31,6 +49,15 @@ public static final fun test_all() -> int:
     print(m["a"])
     print(m["b"])
     print(m)
+    Exception TestException
+    Warning TestWarning
+    try:
+		throw "test" from TestException
+	end catch (e):
+		print(e)
+		print(e.__type__)
+	end
+	throw "TEST WARNING" from TestWarning
     try:
         throw "test"
     end catch (e):
@@ -174,4 +201,8 @@ public static final fun test_all() -> int:
 	import config
 	styledprint("ALL TESTS PASSED", config.get_color("info"))
     return 0
+end
+
+public static final fun test_all() -> int:
+	return testAll()
 end
