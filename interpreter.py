@@ -209,6 +209,9 @@ class Interpreter:
             if {type_, expected} == {"int", "float"}:
                 return True
 
+            if {type_, expected} == {"null", "bool"}:
+                return True
+
             if {type_, expected} == {"int", "bool"}:
                 if return_value in {0, 1, "null"}:
                     return True
@@ -333,7 +336,9 @@ class Interpreter:
         else:
             raise TypeError(f"Object '{obj.name}' is not callable.")
 
-    def call_function(self, function, pos_args, named_args, custom_name=None):
+    def call_function(self, function, pos_args, named_args, custom_name=None, locals=None):
+        if not locals:
+            locals = {}
         name = f"'{function.name}'"
         if custom_name:
             name = f"'{custom_name}' (reassigned from '{function.name}')"
@@ -385,7 +390,7 @@ class Interpreter:
                 raise TypeError(f"Missing required positional argument: '{param_name}'")
 
         i = Interpreter(self.config)
-        i.variables = {**self.variables, **all_args}  # Merge all arguments into the variables environment
+        i.variables = {**self.variables, **all_args, **locals}  # Merge all arguments into the variables environment
         self.stack.append({"name": name, "variables": i.variables, "return_value": i.return_value,
                            "is_returning": i.is_returning})
         self.check_stack()
@@ -415,6 +420,10 @@ class Interpreter:
         is_public = statement["is_public"]
         is_static = statement["is_static"]
         self.check_type(type)
+        if not self.check_type(get_type(value), type):
+            raise TypeError(f"Expected type '{type}', but got '{get_type(value)}'")
+        if not is_public:
+            return
         if statement["name"] in self.variables:
             var = self.variables[statement["name"]]
             if isinstance(var, b_classes.Variable):
@@ -749,6 +758,8 @@ class Interpreter:
                     interpreter = Interpreter(self.config)
                     interpreter.interpret(parser.statements)
 
+                    __locals = interpreter.variables
+
                     variables_to_update = {}
                     for f in interpreter.variables:
                         if isinstance(interpreter.variables[f], b_classes.Function):
@@ -766,6 +777,7 @@ class Interpreter:
                     if not alias_to_use in self.variables:
                         self.variables[alias_to_use] = b_classes.Object(name=alias_to_use)
                     self.variables[alias_to_use]._data.update(variables_to_update)
+                    self.variables[alias_to_use].locals = __locals
                 elif module.rsplit(".", 1)[1] == "py":
                     with open(os.path.join(lib_dir, module_name, module), 'r', encoding='utf-8') as file:
                         code = file.read()
@@ -780,29 +792,59 @@ class Interpreter:
                                 variables_to_globals[v] = self.variables[v].function
                         elif isinstance(self.variables[v], Exception):
                             variables_to_globals[v] = self.variables[v]
-                    globals_ = {**self.variables, "os": os, "importlib": importlib, "config": self.config, "sys": sys, "math": math, "random": random, "decimal": decimal, "Decimal": b_classes.Decimal, "re": re, "default_int": int, "time": time, "true": true, "false": false, "null": null, "Boolean": b_classes.Boolean}
-                    locals_ = {}
+                    # Setup execution context
+                    globals_ = {
+                        **self.variables,
+                        "os": os,
+                        "importlib": importlib,
+                        "config": self.config,
+                        "sys": sys,
+                        "math": math,
+                        "random": random,
+                        "decimal": decimal,
+                        "Decimal": b_classes.Decimal,
+                        "re": re,
+                        "default_int": int,
+                        "time": time,
+                        "true": true,
+                        "false": false,
+                        "null": null,
+                        "Boolean": b_classes.Boolean,
+                    }
 
+                    # Copy environment and execute
+                    exec_namespace = globals_.copy()
                     sys.path.append(module_path)
+                    exec(code, exec_namespace, exec_namespace)
+                    sys.path.remove(module_path)
 
-                    module_spec = importlib.util.spec_from_file_location(original_module_name, module_path)
+                    # Get only added or changed values
+                    changed_keys = {
+                        k for k in exec_namespace
+                        if k not in globals_ or exec_namespace[k] is not globals_[k]
+                    }
 
-                    if module_spec and module_spec.loader:
-                        imported_module = importlib.util.module_from_spec(module_spec)
-                        module_spec.loader.exec_module(imported_module)
-                    exec(code, globals_, locals_)
-
-                    functions_from_locals_ = {name: func for name, func in locals_.items() if callable(func)}
+                    # Setup alias for import
                     alias_to_use = as_name or module_name
-                    if not alias_to_use in self.variables:
+                    if alias_to_use not in self.variables:
                         self.variables[alias_to_use] = b_classes.Object(name=alias_to_use)
 
-                    for f in functions_from_locals_:
-                        self.debug_log(f"<Function '{f}' imported from '{module_name}'>")
-                        self.variables[alias_to_use]._data[f] = b_classes.Function(is_builtin=True, function=functions_from_locals_[f], name=f)
+                    # Import functions
+                    for name in changed_keys:
+                        value = exec_namespace[name]
+                        if callable(value):
+                            self.debug_log(f"<Function '{name}' imported from '{module_name}'>")
+                            self.variables[alias_to_use]._data[name] = b_classes.Function(
+                                is_builtin=True,
+                                function=value,
+                                name=name
+                            )
 
-                    variables_from_locals_ = {name: value for name, value in locals_.items() if not callable(value)}
-                    self.variables[alias_to_use]._data.update(variables_from_locals_)
+                    # Import variables
+                    for name in changed_keys:
+                        value = exec_namespace[name]
+                        if not callable(value):
+                            self.variables[alias_to_use]._data[name] = value
 
         else:
             closest_match = find_closest_match(module_files, module_name)
@@ -899,7 +941,7 @@ class Interpreter:
                 if not ret is None:
                     self.debug_log(f"<Function {name} returned {repr(ret)}>")
                 return ret
-            return self.call_function(function, pos_args, named_args, custom_name=custom_name)
+            return self.call_function(function, pos_args, named_args, custom_name=custom_name, locals=object_.locals)
 
         body = function["body"]
         parameters = function["parameters"]
@@ -950,13 +992,14 @@ class Interpreter:
 
     def handle_object_declaration(self, statement):
         name = statement["name"]
-        self.debug_log(f"<Object '{name}' declared>")
         self.variables[name] = b_classes.Object(name=name)
         for function in statement["functions"]:
             self.variables[name]._data[function["name"]] = function
         for variable in statement["variables"]:
             self.objects[name]._data[variable["name"]] = variable
         self.variables[name]._data["init"] = statement["init"]
+        self.debug_log(f"<Object '{name}' declared>")
+        return self.variables[name]
 
     def handle_comment(self, statement):
         color = self.config.get("color_scheme", {}).get("comment", "#757575")
@@ -1045,7 +1088,7 @@ class Interpreter:
                 if isinstance(b, b_classes.Boolean):
                     b = b.literal
                 self.config[statement["a"][1]] = b
-                self.debug_log(f"<Config '{statement["a"][1]}' -> '{b}' set>")
+                self.debug_log(f"<Config '{statement["a"][1]}' set to '{b}'>")
                 return self.config[statement["a"][1]]
             else:
                 return self.config[statement["a"][1]]
@@ -1093,6 +1136,8 @@ class Interpreter:
             return b_classes.Object(is_builtin=True, object=ret, custom_str=str(ret))
 
         body = object_.init
+        parameters = object_.parameters
+
 
     def handle_exception_definition(self, statement):
         name = statement["name"]

@@ -16,6 +16,20 @@ Functions:
     - clear: Clears the terminal screen.
 """
 
+
+def hex_to_ansi(hex_color, is_bg=False):
+    if not hex_color or hex_color.lower() == "reset":
+        return "\033[0m"
+
+    match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
+    if not match:
+        return "\033[0m"
+
+    r, g, b = tuple(default_int(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
+    if is_bg:
+        return f"\033[48;2;{r};{g};{b}m"
+    return f"\033[38;2;{r};{g};{b}m"
+
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -31,42 +45,12 @@ def supports_color():
     return os.getenv('TERM') != 'dumb' or sys.stdout.isatty()
 
 def debug(*args, **kwargs):
-    def hex_to_ansi(hex_color):
-        if not hex_color or hex_color.lower() == "reset":
-            return "\033[0m"
-
-        match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
-        if not match:
-            return "\033[0m"
-
-        r, g, b = tuple(default_int(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
-        return f"\033[38;2;{r};{g};{b}m"
     print(f"{hex_to_ansi(config["color_scheme"].get('debug', '#434343'))}{''.join(map(str, args))}\033[0m", **kwargs)
 
 def info(*args, **kwargs):
-    def hex_to_ansi(hex_color):
-        if not hex_color or hex_color.lower() == "reset":
-            return "\033[0m"
-
-        match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
-        if not match:
-            return "\033[0m"
-
-        r, g, b = tuple(default_int(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
-        return f"\033[38;2;{r};{g};{b}m"
     print(f"{hex_to_ansi(config["color_scheme"].get('info', '#9209B3'))}{''.join(map(str, args))}\033[0m", **kwargs)
 
 def error(*args, **kwargs):
-    def hex_to_ansi(hex_color):
-        if not hex_color or hex_color.lower() == "reset":
-            return "\033[0m"
-
-        match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
-        if not match:
-            return "\033[0m"
-
-        r, g, b = tuple(default_int(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
-        return f"\033[38;2;{r};{g};{b}m"
     print(f"{hex_to_ansi(config["color_scheme"].get('exception', '#F44350'))}{''.join(map(str, args))}\033[0m", **kwargs)
 
 
@@ -119,30 +103,12 @@ def fatal(*args, **kwargs):
     print(f"{color}{''.join(map(str, args))}\033[0m", **kwargs)
 
 def warn(*args, **kwargs):
-    def hex_to_ansi(hex_color):
-        if not hex_color or hex_color.lower() == "reset":
-            return "\033[0m"
-
-        match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
-        if not match:
-            return "\033[0m"
-
-        r, g, b = tuple(default_int(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
-        return f"\033[38;2;{r};{g};{b}m"
     print(f"{hex_to_ansi(config["color_scheme"].get('warning', '#FFC107'))}{''.join(map(str, args))}\033[0m", **kwargs)
 
-def styled_print(text, fg_color, *, bg_color=None, bold=False, underline=False, italic=False, strikethrough=False, blink=False, reverse=False, link=None, end="\n"):
-    def hex_to_ansi(hex_color):
-        if not hex_color or hex_color.lower() == "reset":
-            return "\033[0m"
-
-        match = re.fullmatch(r'#?([A-Fa-f0-9]{6})', hex_color)
-        if not match:
-            return "\033[0m"
-
-        r, g, b = tuple(default_int(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
-        return f"\033[38;2;{r};{g};{b}m"
+def styled_print(text, fg_color=None, *, bg_color=None, bold=False, underline=False, italic=False, strikethrough=False, blink=False, reverse=False, link=None, end="\n"):
     style = hex_to_ansi(fg_color)
+    if not style:
+        style = "\033[0m"
     if bg_color:
         style += hex_to_ansi(bg_color, is_bg=True)
 

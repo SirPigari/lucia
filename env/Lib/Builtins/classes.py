@@ -117,6 +117,7 @@ class Object:
             name = self.__class__.__name__
         self.name = name
         self._data = {}
+        self.locals = {}
         self.custom_str = custom_str
         self.is_builtin = is_builtin
         if self.is_builtin:
@@ -203,9 +204,6 @@ class Object:
         if isinstance(other, Object):
             return self._data != other.get_data()
         return True
-
-    def __repr__(self):
-        return f"Object(name={self.name}, data={repr(self._data)})"
 
 
 class Variable:

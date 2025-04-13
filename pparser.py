@@ -305,7 +305,7 @@ class Parser:
         value = get_type_default(variable_type["name"])
         if self.token == ('OPERATOR', '|'):
             self.next()
-            mods = ("final", "mutable", "public", "private", "static")
+            mods = ("final", "mutable", "public", "private", "static", "non-static")
             if self.token[1] not in mods:
                 raise SyntaxError(f"Unexpected variable modifier: {self.token[1]}")
             while self.token[1] in mods:
@@ -319,6 +319,8 @@ class Parser:
                     is_public = False
                 if self.token[1] == "static":
                     is_static = True
+                if self.token[1] == "non-static":
+                    is_static = False
                 self.next()
         if self.token == ('OPERATOR', '='):
             self.next()
@@ -825,6 +827,8 @@ class Parser:
         elif self.token == ('IDENTIFIER', 'config'):
             self.next()
             self.check_token()
+            if not self.token[0] == 'IDENTIFIER':
+                raise SyntaxError(f"Config name must be an identifier.")
             a = self.token
             self.next()
             if not self.token == ('OPERATOR', '='):
@@ -832,6 +836,7 @@ class Parser:
                     self.next()
                     return {"type": "PREDEF", "predef_type": "CONFIG", "a": a, "b": "{{ RESET }}"}
                 return {"type": "PREDEF", "predef_type": "CONFIG", "a": a, "b": None}
+            self.check_for('OPERATOR', '=')
             self.next()
             self.check_token()
             b = self.parse_expression()

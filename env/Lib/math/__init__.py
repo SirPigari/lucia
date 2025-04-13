@@ -14,6 +14,7 @@ TAU = tau
 INF = inf
 NAN = nan
 
+
 # Functions
 def log(x, base=None):
     if base is None:

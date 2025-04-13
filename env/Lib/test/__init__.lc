@@ -1,10 +1,32 @@
+testInt: int = 0
+testFloat: float = 0.0
+testStr: str = "test"
+testBool: bool = true
+testList: list = [1, 2, 3]
+testMap: map = {"a": 1, "b": 2}
+testAny: any = "test"
+testVoid: void = null
+testNull: null = null
+testObject: object = object Object: end
+testFunction: function = fun test() -> int: return 0 end
+testFunctionWithArgs: function = fun test(a: int, b: int) -> int: return a + b end
+testFunctionWithDefaultArgs: function = fun test(a: int, b: int, c: int=10) -> int: return a + b + c end
+testVariableFinal: int | final = 0
+testVariableStatic: int | static = 0
+testVariablePublic: int | public = 0
+testVariablePrivate: int | private = 0
+testVariableMutable: int | mutable = 0
+testVariableNonStatic: int | non-static = 0
+testVariableAllMods: int | public static final = 0
+
+
 public static final fun test() -> int: return 0 end
 
-private static final fun you_cant_call_me_lol() -> int: print("you cant call me lol") end
+private static final fun youCantCallMeLol() -> int: print("you cant call me lol") end
 
-public static final fun you_can_call_me() -> int: print("you can call me") return 0 end
+public static final fun youCanCallMe() -> int: print("you can call me") return 0 end
 
-public static final fun test_iterative(n: int) -> int:
+public static final fun testIterative(n: int) -> int:
 	i: int = 0
 	while (i < n):
 		i += 1
@@ -15,7 +37,7 @@ public static final fun test_iterative(n: int) -> int:
 	return i
 end
 
-public static final fun test_recursive(n: int) -> int:
+public static final fun testRecursive(n: int) -> int:
 	if (n == 0):
 		return 0
 	end
@@ -25,9 +47,11 @@ end
 public static final fun testAll() -> int:
     // tests many features of the language
     #alias function -> fun
-    function test() -> int: return 0 end
+    function testFunction() -> int: return 0 end
     test()
     #del function
+    #config debug = true
+    #config debug reset
     i: int = 0
     try:
         i = "a"
@@ -201,8 +225,4 @@ public static final fun testAll() -> int:
 	import config
 	styledprint("ALL TESTS PASSED", config.get_color("info"))
     return 0
-end
-
-public static final fun test_all() -> int:
-	return testAll()
 end

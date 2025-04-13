@@ -63,6 +63,7 @@ Content
   - [Predef Types](#predef-types)
     - [1\. #alias](#1-alias)
     - [2\. #del](#2-del)
+    - [3\. #config](#3-config)
 - [Conclusion](#conclusion)
 
 
@@ -661,7 +662,7 @@ The `#config` predef allows you to modify the configuration of the interpreter. 
 *Example:*
 
 ```lucia
-#config "debug" -> true
+#config debug = true
 ```
 
 Can be reset to default by:
