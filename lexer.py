@@ -29,7 +29,7 @@ OPERATORS = [
 
 WORD_OPERATORS = [
     "in",
-    "or"
+    "or",
     "and",
     "not",
     "isnt",

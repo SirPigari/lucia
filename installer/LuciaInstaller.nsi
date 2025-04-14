@@ -20,6 +20,9 @@ FunctionEnd
 !define MUI_ABORTWARNING
 !define MUI_ICON "../env/assets/installer2.ico"
 !define MUI_TITLE "Lucia - $Version"
+!define MUI_BANNERIMAGE_BITMAP "../env/assets/lucia_logo_banner_fill.bmp"
+!define MUI_BANNERIMAGE "..\env\assets\lucia_logo_banner_fill.bmp"
+!define MUI_BANNER_TRANSPARENT_TEXT
 Name "Lucia-$Version"
 
 !define MUI_UNICON "../env/assets/installer3.ico"

@@ -56,6 +56,7 @@ Configuration Options
 
 *   **Type:** `bool`
 *   **Description:** Enables or disables the debugging mode. Set to `true` to turn on debugging.
+*   **Note:** Enabling this will slow down the program due to the additional print statements. You can turn it on if performance is not a concern.
 
 ### 3\. `debug_mode`
 

@@ -26,6 +26,127 @@ private static final fun youCantCallMeLol() -> int: print("you cant call me lol"
 
 public static final fun youCanCallMe() -> int: print("you can call me") return 0 end
 
+public static final fun testIndex() -> void:
+    l: list = [1, 2, 3]
+    m: map = {"a": 1, "b": 2}
+
+    print(l[0])
+    print(m["a"])
+
+    m["c"] = 3
+
+    print(m["c"])
+    print(m["a"] + m["b"] + m["c"])
+
+    forget m["c"]
+
+    print(len(m))
+
+    return null
+end
+
+public static final fun testFunctionCalls() -> int:
+    private static mutable fun t() -> int:
+        return 0
+    end
+    print(t())
+    fun t(a, b) -> int:
+        return a + b
+    end
+    print(t(2, 5))
+    fun t(a, b=5) -> int:
+        return a + b
+    end
+    print(t(2))
+    fun t(a=2, b=5) -> int:
+        return a + b
+    end
+    print(t())
+    return 0
+end
+
+public static final fun testLibs() -> int:
+    import config
+    import math
+    import random
+    import os
+    import console
+    import python
+
+    // config
+    print(config.get("debug"))
+
+    // math
+    print(math.sqrt(4))
+    print(math.PI)
+
+    // random
+    print(random.randint(0, 100))
+    print(random.choice([1, 2, 3, 4, 5]))
+    print(random.shuffle([1, 2, 3, 4, 5]))
+    print(random.seed(10))
+
+    // os
+    print(os.getcwd())
+
+    // console
+    print(console.info("test"))
+
+    // python
+    print(python.pyeval("print('hello from python')"))
+    print(python.pyexec("print('hello from python')"))
+    print(python.pybool(null))
+    print(python.pytype(1))
+    print(python.pytype(1.0))
+
+    return 0
+end
+
+public static final fun testOperators() -> void:
+    a: int = 1
+    b: int = 2
+    l: list = [1, 2, 3]
+    m: map = {"a": 1, "b": 2}
+
+    print(a >= b)
+    print(a <= b)
+    print(a == b)
+    print(a != b)
+    print(a += b)
+    print(a -= b)
+    print(a *= b)
+    print(a /= b)
+    print(a + b)
+    print(a - b)
+    print(a ^ b)
+    print(a * b)
+    print(a / b)
+    print(a > b)
+    print(a < b)
+    print(!a)
+    print(a % b)
+    print(a || b)
+    print(a && b)
+    print(|-a|)
+    print(a ~ l)
+    print(a ~ m)
+
+    print(a in l)
+    print(a in m)
+    print(a or l)
+    print(a and l)
+    print(not a)
+    print(a isn't b)
+    print(a isnt b)
+    print(a is b)
+    print(a xor b)
+    print(a xnor b)
+    print(a nein b)
+    print(nein a)
+
+    return null
+end
+
 public static final fun testIterative(n: int) -> int:
 	i: int = 0
 	while (i < n):
@@ -58,6 +179,9 @@ public static final fun testAll() -> int:
     end catch (e):
         print(e)
     end
+    print(testOperators())
+    print(testLibs())
+    print(testFunctionCalls())
     forget i
     i: any = "test"
     print(i)

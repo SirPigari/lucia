@@ -58,7 +58,7 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
     - `#predef <name> -> <value>`
     - Predefs:
       - `#alias` - Aliases a function or variable (example: `#alias function -> fun`)
-      - `#del` - Deletes a alias defined before (example: `#del function`)
+      - `#del` - Deletes an alias defined before (example: `#del function`)
 - Added `test_all` function to `test` module.
 - Fixed MANY bugs
 - Added 'in' operator (`~`):

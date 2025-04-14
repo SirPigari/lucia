@@ -391,7 +391,7 @@ class Parser:
             name = self.token[1]
             self.next()
             variable_type = "any"
-            default_value = {"BOOLEAN": "null", "literal_value": None}
+            default_value = {"type": "BOOLEAN", "value": "null", "literal_value": None}
             if self.token == ('SEPARATOR', ':'):
                 self.next()
                 variable_type = self.token[1]
@@ -685,11 +685,10 @@ class Parser:
     def parse_forget_statement(self):
         self.check_for('IDENTIFIER', 'forget')
         self.next()
-        name = self.token[1]
-        self.next()
+        value = self.parse_expression()
         return {
             "type": "FORGET",
-            "name": name
+            "value": value
         }
 
     def parse_indexing(self):
@@ -857,6 +856,7 @@ class Parser:
             "isnt": "!=",
             "isn't": "!=",
             "nein": "!=",
+            "in": "~",
         }
         if token in operator_map:
             operator = operator_map[token]

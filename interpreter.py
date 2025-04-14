@@ -351,6 +351,9 @@ class Interpreter:
             self.stack.pop()
             if ret is not None:
                 self.debug_log(f"<Function {name} returned {repr(ret)}>")
+                if self.repl:
+                    if not (self.stack and self.stack[-1]["name"] == "print"):
+                        print(ret)
             return b_classes.Literal(ret)
 
         body = function.body
@@ -375,7 +378,7 @@ class Interpreter:
         for i, parameter in enumerate(parameters):
             param_name = parameter['name']
             param_type = parameter['variable_type']
-            default_value = parameter['default_value']
+            default_value = self.evaluate(parameter['default_value'])
 
             if param_name in named_args:
                 if not self.check_type(get_type(named_args[param_name]), param_type):
@@ -391,7 +394,7 @@ class Interpreter:
 
         i = Interpreter(self.config)
         i.variables = {**self.variables, **all_args, **locals}  # Merge all arguments into the variables environment
-        self.stack.append({"name": name, "variables": i.variables, "return_value": i.return_value,
+        self.stack.append({"name": name, "variables": {**self.variables, **all_args}, "return_value": i.return_value,
                            "is_returning": i.is_returning})
         self.check_stack()
         i.stack = self.stack
@@ -401,6 +404,10 @@ class Interpreter:
         self.return_value = self.stack[-1]["return_value"]
         self.is_returning = self.stack[-1]["is_returning"]
         self.stack.pop()
+        if i.return_value is not None:
+            if self.repl:
+                if not (self.stack and self.stack[-1]["name"] == "print"):
+                    print(i.return_value)
         return b_classes.Literal(i.return_value)
 
     def handle_return(self, statement):
@@ -503,9 +510,9 @@ class Interpreter:
             right = b_classes.Decimal(right)
 
         if isinstance(left, list):
-            left = b_classes.Variable(None, left)
+            left = b_classes.List(left)
         if isinstance(right, list):
-            right = b_classes.Variable(None, right)
+            right = b_classes.List(right)
 
         return self.make_operation(left, right, operator)
 
@@ -522,6 +529,8 @@ class Interpreter:
                 raise ZeroDivisionError("Division by zero.")
             return left / right
         elif operator == "^":
+            if int(right) == 0:
+                return 1
             return left ** right
         elif operator == "%":
             return left % right
@@ -685,14 +694,31 @@ class Interpreter:
             self.interpret(statement["else_body"])
 
     def handle_forget(self, statement):
-        if statement["name"] not in self.variables:
-            closest_match = find_closest_match(self.variables.keys(), statement["name"])
-            if closest_match:
-                raise NameError(f"Name '{statement["name"]}' is not defined. Did you mean: '{closest_match}'?")
-            else:
-                raise NameError(f"Name '{statement["name"]}' is not defined.")
-        del self.variables[statement["name"]]
-        self.debug_log(f"<Variable '{statement["name"]}' forgotten.>")
+        value = statement["value"]
+        if value["type"] == "INDEX":
+            if value["name"] not in self.variables:
+                closest_match = find_closest_match(self.variables.keys(), value["name"])
+                if closest_match:
+                    raise NameError(f"Name '{value["name"]}' is not defined. Did you mean: '{closest_match}'?")
+                else:
+                    raise NameError(f"Name '{value["name"]}' is not defined.")
+            index = self.evaluate(value["index"])
+            if not index in self.variables[value["name"]]:
+                closest_match = find_closest_match(self.variables[value["name"]], value["name"])
+                if closest_match:
+                    raise b_exceptions.KeyError(f"Key '{index}' not found in '{value["name"]}'. Did you mean: '{closest_match}'?")
+                else:
+                    raise b_exceptions.KeyError(f"Key '{index}' not found in '{value["name"]}'.")
+            var = self.variables[value["name"]].value
+            try:
+                index = int(index)
+            except (ValueError, TypeError):
+                pass
+            del var[index]
+            self.debug_log(f"<Index '{index}' of variable '{value["name"]}' was forgotten.>")
+        elif value["type"] == "VARIABLE":
+            del self.variables[value["name"]]
+            self.debug_log(f"<Variable '{value["name"]}' forgotten.>")
 
     def handle_for_loop(self, statement):
         variable = statement["variable_name"]
@@ -729,7 +755,7 @@ class Interpreter:
     def import_module(self, module_name, as_name=None, from_=None):
         original_module_name = as_name if as_name else module_name
         from_ = os.path.abspath(from_ or os.path.join(self.config.get("home_dir"), "Lib"))
-        if not os.path.exists(from_):
+        if not os.path.exists(os.path.join(from_, module_name)):
             raise ImportError(f"Path '{from_}' does not exist.")
         module_path = os.path.join(from_, module_name)
         lib_dir = os.path.join(from_)
@@ -918,7 +944,18 @@ class Interpreter:
         if hasattr(object_, function_name):
             function = getattr(object_, function_name)
             if callable(function):
-                return function(*pos_args, **named_args)
+                if custom_name:
+                    self.debug_log(f"<Function '{custom_name}' (reassigned from '{function_name}') called>")
+                else:
+                    self.debug_log(f"<Function '{object_name}.{function_name}' called>")
+                self.stack.append({"name": f"'{object_name}.{function_name}'", "variables": self.variables, "return_value": self.return_value,
+                                   "is_returning": self.is_returning})
+                self.check_stack()
+                ret = b_classes.Literal(function(*pos_args, **named_args))
+                self.stack.pop()
+                if not ret is None:
+                    self.debug_log(f"<Function '{object_name}.{function_name}' returned {repr(ret)}>")
+                return ret
             else:
                 raise TypeError(f"Object '{object_}' has no function '{function_name}'.")
         function = object_._data.get(function_name, null)
@@ -940,8 +977,8 @@ class Interpreter:
                 self.stack.pop()
                 if not ret is None:
                     self.debug_log(f"<Function {name} returned {repr(ret)}>")
-                return ret
-            return self.call_function(function, pos_args, named_args, custom_name=custom_name, locals=object_.locals)
+                return b_classes.Literal(ret)
+            return b_classes.Literal(self.call_function(function, pos_args, named_args, custom_name=custom_name, locals=object_.locals))
 
         body = function["body"]
         parameters = function["parameters"]
@@ -1081,14 +1118,15 @@ class Interpreter:
         elif predef_type == "CONFIG":
             if statement["b"] == "{{ RESET }}":
                 self.config[statement["a"][1]] = self.lit_config.get(statement["a"][1], None)
-                self.debug_log(f"<Config '{statement["a"][1]}' reset to default>")
+                self.debug_log(f"<Config '{statement["a"][1]}' has been reset to default>")
                 return self.config[statement["a"][1]]
             elif statement["b"]:
                 b = self.evaluate(statement["b"])
+                org_b = b
                 if isinstance(b, b_classes.Boolean):
                     b = b.literal
                 self.config[statement["a"][1]] = b
-                self.debug_log(f"<Config '{statement["a"][1]}' set to '{b}'>")
+                self.debug_log(f"<Config '{statement["a"][1]}' set to '{org_b}'>")
                 return self.config[statement["a"][1]]
             else:
                 return self.config[statement["a"][1]]

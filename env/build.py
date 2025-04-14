@@ -43,7 +43,7 @@ os.chdir("../")
 
 BUILD_PATH = os.path.abspath("env/build").replace("\\", "/")
 BIN_PATH = os.path.abspath("env/bin").replace("\\", "/")
-LUCIA_ICON = os.path.abspath("env/assets/lucia_icon_rounded.ico").replace("\\", "/")
+LUCIA_ICON = os.path.abspath("env/assets/lucia_logo_small.ico").replace("\\", "/")
 INSTALLER_ICON2 = os.path.abspath("env/assets/installer2.ico").replace("\\", "/")
 DATA_PATH = os.path.abspath(".").replace("\\", "/")
 FILE = os.path.abspath("lucia.py").replace("\\", "/")

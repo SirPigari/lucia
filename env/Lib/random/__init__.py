@@ -5,10 +5,11 @@ def choice(seq):
     return random.choice(seq)
 
 def shuffle(seq):
-    random.shuffle(seq)
+    return random.shuffle(seq)
 
 def seed(a=None, version=2):
     random.seed(a, version)
+    return a
 
 def bool(chance=0.5):
     return Boolean(random.random() < chance)
@@ -17,7 +18,7 @@ def getstate():
     return random.getstate()
 
 def setstate(state):
-    random.setstate(state)
+    return random.setstate(state)
 
 def getrandbits(k):
     return random.getrandbits(k)

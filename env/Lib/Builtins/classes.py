@@ -10,6 +10,8 @@ def Literal(__literal):
         return Float(__literal)
     elif isinstance(__literal, bool):
         return Boolean(__literal)
+    elif isinstance(__literal, type(None)):
+        return Boolean(None)
     elif isinstance(__literal, Boolean):
         return __literal
     elif isinstance(__literal, list):

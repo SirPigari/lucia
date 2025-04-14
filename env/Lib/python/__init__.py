@@ -36,3 +36,11 @@ def pyhasattr(__obj, __attr):
 
 def pytype(__obj):
 	return type(__obj)
+
+def pycall(__obj, *args, **kwargs):
+	return __obj(*args, **kwargs)
+
+def pybool(__obj):
+	if hasattr(__obj, 'literal'):
+		return __obj.literal
+	return bool(__obj)
