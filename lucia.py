@@ -214,6 +214,8 @@ color_map = config.get('color_scheme', {})
 FILE_PATH = None
 if len(sys.argv) > 1:
     for arg in sys.argv[1:]:
+        if arg == sys.executable:
+            continue
         if not arg.startswith("-"):
             FILE_PATH = arg
             break

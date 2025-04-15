@@ -1,0 +1,13 @@
+#config debug = true
+
+print("LuciaAPL Test Suite")
+
+import test
+
+test.testAll()
+
+print("Test suite finished")
+
+wait("1000ms")
+
+#config debug reset

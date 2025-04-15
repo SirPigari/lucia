@@ -19,9 +19,6 @@ def pyeval(__code, __globals=None, __locals=None):
 def pycompile(__code, __filename, __mode):
 	return compile(__code, __filename, __mode)
 
-def pyimport(__name):
-	return importlib.import_module(__name)
-
 def pygetattr(__obj, __attr):
 	return getattr(__obj, __attr)
 

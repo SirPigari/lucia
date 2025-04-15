@@ -114,9 +114,12 @@ class Boolean:
 
 
 class Object:
-    def __init__(self, value=None, name=None, custom_str=None, is_builtin=False, object=None):
+    def __init__(self, value=None, name=None, custom_str=None, is_builtin=False, object=None, id_=None):
         if not name:
             name = self.__class__.__name__
+        if not id_:
+            id_ = id(self)
+        self.id = id_
         self.name = name
         self._data = {}
         self.locals = {}

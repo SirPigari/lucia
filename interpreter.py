@@ -117,6 +117,7 @@ class Interpreter:
             "ListPatternRecognitionWarning": b_classes.Object(is_builtin=True, object=b_exceptions.ListPatternRecognitionWarning, name="ListPatternRecognitionWarning"),
             "RecursionLimitWarning": b_classes.Object(is_builtin=True, object=b_exceptions.RecursionLimitWarning, name="RecursionLimitWarning"),
             "TestContext": b_classes.Object(is_builtin=True, object=b_classes.TestContext, name="TestContext"),
+            "setprec": b_classes.Function(is_builtin=True, function=self.setprec, name="setprec"),
         }
 
         self.variables.update({
@@ -132,6 +133,14 @@ class Interpreter:
         self.return_value = b_classes.Boolean(None)
         self.is_returning = False
         self.stack = []
+
+    def setprec(self, value: int=None):
+        if not (isinstance(value, int) or isinstance(value, float)) and value is not None:
+            raise TypeError(f"Expected an integer for 'value', but got '{get_type(value)}'")
+        if value:
+            value = int(value)
+            decimal.getcontext().prec = value
+        return decimal.getcontext().prec
 
     def warn(self, message, category, stacklevel=3):
         if self.config.get('warnings', True):
@@ -496,7 +505,7 @@ class Interpreter:
         if isinstance(right, b_classes.Variable):
             right = right.value
 
-        prec = 28
+        prec = decimal.getcontext().prec
         if len(str(left)) + 2 > prec:
             prec = len(str(left)) + 2
         if len(str(right)) + 2 > prec:
@@ -760,6 +769,10 @@ class Interpreter:
         module_path = os.path.join(from_, module_name)
         lib_dir = os.path.join(from_)
         module_files = os.listdir(module_path)
+        alias_to_use = as_name or module_name
+
+        if self.variables.get(alias_to_use, None) and self.variables.get(alias_to_use, None).id == module_path:
+            pass
 
         if os.path.isdir(module_path):
             module_name = os.path.basename(module_name)
@@ -776,7 +789,7 @@ class Interpreter:
                 if module in ("__pycache__"):
                     continue
                 if f".{module.rsplit('.', 1)[1]}" in self.config["lucia_file_extensions"]:
-                    with open(os.path.join(lib_dir, module_name, module), 'r', encoding='utf-8') as file:
+                    with open(os.path.join(module_path, module), 'r', encoding='utf-8') as file:
                         code = file.read()
                     tokens = lexer.lexer(code, include_comments=self.config.get('print_comments', False))
                     parser = pparser.Parser(tokens, self.config)
@@ -801,7 +814,7 @@ class Interpreter:
 
                     alias_to_use = as_name or module_name
                     if not alias_to_use in self.variables:
-                        self.variables[alias_to_use] = b_classes.Object(name=alias_to_use)
+                        self.variables[alias_to_use] = b_classes.Object(name=alias_to_use, id_=os.path.join(from_, module_name))
                     self.variables[alias_to_use]._data.update(variables_to_update)
                     self.variables[alias_to_use].locals = __locals
                 elif module.rsplit(".", 1)[1] == "py":

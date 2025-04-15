@@ -46,6 +46,14 @@ Section "Install Lucia"
     IfFileExists "$INSTDIR\env\bin\lucia.exe" 0 +2
     Delete "$INSTDIR\env\bin\lucia.exe"
 
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 5" "State"
+        StrCmp $0 "1" 0 +2
+        Pop $0
+
+        RMDir /r "$INSTDIR\"
+
+        Delete $2
+
     SetOutPath "$INSTDIR"
 
     File /r /x .venv /x .git /x tests/test.lucia /x build /x dist /x *.spec \
@@ -54,6 +62,17 @@ Section "Install Lucia"
          /x env/assets/fake_temp.zip /x env/assets/python_installer.exe \
          /x installer.py /x env/build /x env/bin/lucia_installer.exe \
          /x installer "C:\Users\sirpigari\Desktop\Projects\LuciaAPL\*.*"
+
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 6" "State"
+        StrCmp $0 "1" 0 CopyConfig
+        Goto AfterConfig
+
+    CopyConfig:
+        SetOutPath "$INSTDIR\env"
+        File "C:\Users\sirpigari\Desktop\Projects\LuciaAPL\env\config.json"
+
+    AfterConfig:
+
 
     IfErrors 0 +3
     MessageBox MB_OK|MB_ICONSTOP "Error: Failed to copy files."
@@ -65,6 +84,12 @@ Section "Install Lucia"
         Pop $0
 
         ExecWait 'cmd.exe /C ""$INSTDIR\env\bin\lucia.exe" --no-color --activate"'
+
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 4" "State"
+        StrCmp $0 "1" 0 +2
+        Pop $0
+
+        ExecWait 'cmd.exe /C ""$INSTDIR\env\bin\lucia.exe" --no-color --timer $INSTDIR\env\Docs\examples\testAll.lc"'
 
     ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 1" "State"
         StrCmp $0 "1" 0 +3
