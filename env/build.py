@@ -49,7 +49,7 @@ DATA_PATH = os.path.abspath(".").replace("\\", "/")
 FILE = os.path.abspath("lucia.py").replace("\\", "/")
 FILE2 = os.path.abspath("installer.py").replace("\\", "/")
 EXE_PATH = os.path.join(BIN_PATH, "lucia.exe").replace("\\", "/")
-VERSION = "1.2"
+VERSION = "1.2.1"
 
 kill_process("lucia.exe")
 

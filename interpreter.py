@@ -756,7 +756,7 @@ class Interpreter:
         original_module_name = as_name if as_name else module_name
         from_ = os.path.abspath(from_ or os.path.join(self.config.get("home_dir"), "Lib"))
         if not os.path.exists(os.path.join(from_, module_name)):
-            raise ImportError(f"Path '{from_}' does not exist.")
+            raise ImportError(f"Path '{os.path.join(from_, module_name)}' does not exist.")
         module_path = os.path.join(from_, module_name)
         lib_dir = os.path.join(from_)
         module_files = os.listdir(module_path)

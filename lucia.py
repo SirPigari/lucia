@@ -8,7 +8,7 @@ import warnings
 import platform
 
 WORKING_DIR = os.path.dirname(__file__)
-VERSION = "1.2"
+VERSION = "1.2.1"
 CALL_PATH = os.getcwd()
 
 if hasattr(sys, 'frozen'):
@@ -255,6 +255,8 @@ if config.get('home_dir', PLACEHOLDER) != expected_env:
             f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is moded. Use 'env\\activate.py' to activate the environment. Please run the file again.{hex_to_ansi("reset")}")
 
 os.chdir(config.get('home_dir', WORKING_DIR))
+if (len(sys.argv) > 1) and (not ("--no-title" in sys.argv)):
+    os.system(f"title Lucia-{config.get('version', '(version unknown)')}")
 
 if len(sys.argv) > 1:
     if "--help" in sys.argv or "-h" in sys.argv:
@@ -267,16 +269,10 @@ if len(sys.argv) > 1:
     if "--config" in sys.argv:
         print(f"Config file path: {CONFIG_PATH}")
         clear_exit(0)
-    if "--no-color" in sys.argv:
+    if "--no-color" in sys.argv or "--nocolor" in sys.argv or "--nc" in sys.argv or "-nc" in sys.argv:
         config['supports_color'] = False
     if "--home" in sys.argv:
         print(f"Home directory: {config.get('home_dir', os.path.join(WORKING_DIR, 'env'))}")
-        clear_exit(0)
-    if "--timer" in sys.argv:
-        start_time = time.time()
-        handle_file_exec(FILE_PATH)
-        print(
-            f"\n{hex_to_ansi(color_map.get('info', '#D10CFF'))}Execution time: {time.time() - start_time:.4f} seconds{hex_to_ansi("reset")}")
         clear_exit(0)
     if "--test-all-tests" in sys.argv:
         path = os.path.join(config.get('home_dir', WORKING_DIR), 'Docs\\tests')
@@ -309,6 +305,12 @@ if len(sys.argv) > 1:
         for key, value in info.items():
             print(f"{key}: {value}")
 
+        clear_exit(0)
+    if "--timer" in sys.argv:
+        start_time = time.time()
+        handle_file_exec(FILE_PATH)
+        print(
+            f"\n{hex_to_ansi(color_map.get('info', '#D10CFF'))}Execution time: {time.time() - start_time:.4f} seconds{hex_to_ansi("reset")}")
         clear_exit(0)
 
 if FILE_PATH:

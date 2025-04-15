@@ -44,3 +44,6 @@ def pybool(__obj):
 	if hasattr(__obj, 'literal'):
 		return __obj.literal
 	return bool(__obj)
+
+def pyversion():
+	return sys.version

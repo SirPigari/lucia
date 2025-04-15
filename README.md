@@ -1,4 +1,4 @@
-# Lucia 1.2.0
+# Lucia 1.2.1
 
 Lucia is a simple, lightweight, and fast programming language made in python.
 
@@ -67,7 +67,6 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
 - Fixed float operations
 
 ---
-
 ### 1.1.0
 - Added `try`-`catch` statements
 - Added `console` library:
