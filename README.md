@@ -10,7 +10,6 @@ ___
 - Documentation
 - Testing
 - Adding more features
-- Fixing issues with Objects
 
 ___
 
@@ -26,6 +25,27 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
 
 
 ## Changelog:
+### 1.2.1
+- Changed the lucia logo, new logo: ![Lucia Logo](env/assets/lucia_logo_small.png)
+- Fixed typos
+- Fixed bugs:
+  - Error when python function returned None, now it returns `null`
+  - Fixed issues with REPL terminal mode
+  - **IMPORTANT** Fixed `forget` statement
+  - **IMPORTANT** Fixed problems with `or` and `and` operators
+  - **IMPORTANT** Fixed issue with default values in function parameters
+- Added function `getcwd` to `os` library
+- Added functions to python library:
+  - `pycall` - Calls a python function from a python file.
+  - `pybool` - Converts a value to a boolean.
+  - `pyversion` - Returns the python version.
+- Fixed bugs with `random` library
+- Added functions to `test` library:
+  - `testIndex` - Tests indexes in lucia.
+  - `testFunctionCalls` - Tests function calls in lucia.
+  - `testLibs` - Tests libraries in lucia.
+  - `testOperators` - Tests operators in lucia.
+- Added [`update_version.py`](env/update_version.py)
 ### 1.2.0
 - Added `flatten` function to `list` and `map` modules:
 - Added `Exception` and `Warning` keywords:
