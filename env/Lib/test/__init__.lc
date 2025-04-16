@@ -65,6 +65,28 @@ public static final fun testFunctionCalls() -> int:
     return 0
 end
 
+public static final fun testImports() -> void:
+	import config
+
+	envPath: str = config.get("home_dir", "")
+
+	import math as m
+	import isPrime from "Docs/examples/isPrime.lc"
+	print(m.sqrt(4))
+	print(m.PI)
+
+	print(isPrime.isPrime(5))
+
+	import bubbleSort from "Docs/examples/bubbleSort.lc" as bl
+
+	arr: list = [64, 34, 25, 12, 22, 11, 90]
+	print(bl.bubbleSort(arr))
+
+	print(config.get_config("home_dir", ""))
+	print(config.debug)
+	return null
+end
+
 public static final fun testLibs() -> int:
     import config
     import math
@@ -182,6 +204,7 @@ public static final fun testAll() -> int:
     print(testOperators())
     print(testLibs())
     print(testFunctionCalls())
+    testImports()
     forget i
     i: any = "test"
     print(i)

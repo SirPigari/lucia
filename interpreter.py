@@ -764,17 +764,25 @@ class Interpreter:
     def import_module(self, module_name, as_name=None, from_=None):
         original_module_name = as_name if as_name else module_name
         from_ = os.path.abspath(from_ or os.path.join(self.config.get("home_dir"), "Lib"))
+        if os.path.isfile(module_name):
+            from_ = os.path.dirname(module_name)
+            module_name = os.path.basename(module_name)
+        if os.path.isfile(from_):
+            from_ = os.path.dirname(from_)
+        if not os.path.exists(os.path.join(from_, module_name)):
+            for file in os.listdir(from_):
+                if os.path.basename(file).rsplit(".", maxsplit=1)[0] == module_name:
+                    module_name = file
         if not os.path.exists(os.path.join(from_, module_name)):
             raise ImportError(f"Path '{os.path.join(from_, module_name)}' does not exist.")
-        module_path = os.path.join(from_, module_name)
-        lib_dir = os.path.join(from_)
-        module_files = os.listdir(module_path)
         alias_to_use = as_name or module_name
+        module_path = os.path.join(from_, module_name)
 
         if self.variables.get(alias_to_use, None) and self.variables.get(alias_to_use, None).id == module_path:
             pass
 
         if os.path.isdir(module_path):
+            lib_dir = os.path.join(from_)
             module_name = os.path.basename(module_name)
             module_files = os.listdir(module_path)
 
@@ -884,8 +892,110 @@ class Interpreter:
                         value = exec_namespace[name]
                         if not callable(value):
                             self.variables[alias_to_use]._data[name] = value
+        elif os.path.isfile(module_path):
+            module_name = os.path.basename(module_name).rsplit(".", 1)[0]
+            module = module_path
+            if f".{module.rsplit('.', 1)[1]}" in self.config["lucia_file_extensions"]:
+                with open(os.path.join(module_path, module), 'r', encoding='utf-8') as file:
+                    code = file.read()
+                tokens = lexer.lexer(code, include_comments=self.config.get('print_comments', False))
+                parser = pparser.Parser(tokens, self.config)
+                parser.parse()
+                interpreter = Interpreter(self.config)
+                interpreter.interpret(parser.statements)
 
+                __locals = interpreter.variables
+
+                variables_to_update = {}
+                for f in interpreter.variables:
+                    if isinstance(interpreter.variables[f], b_classes.Function):
+                        if interpreter.variables[f].is_builtin:
+                            variables_to_update[f] = interpreter.variables[f].function
+                        elif interpreter.variables[f].modifiers["is_public"]:
+                            self.debug_log(f"<Function '{f}' imported from '{module_name}'>")
+                            variables_to_update[f] = interpreter.variables[f]
+                    elif isinstance(interpreter.variables[f], b_classes.Variable):
+                        variables_to_update[f] = interpreter.variables[f]
+                    elif isinstance(interpreter.variables[f], b_classes.Object):
+                        variables_to_update[f] = interpreter.variables[f]
+
+                alias_to_use = as_name or module_name
+                if not alias_to_use in self.variables:
+                    self.variables[alias_to_use] = b_classes.Object(name=alias_to_use,
+                                                                    id_=os.path.join(from_, module_name))
+                self.variables[alias_to_use]._data.update(variables_to_update)
+                self.variables[alias_to_use].locals = __locals
+            elif module.rsplit(".", 1)[1] == "py":
+                with open(os.path.join(lib_dir, module_name, module), 'r', encoding='utf-8') as file:
+                    code = file.read()
+                variables_to_globals = {}
+                for v in self.variables:
+                    if isinstance(self.variables[v], b_classes.Variable):
+                        variables_to_globals[v] = self.variables[v].value
+                    elif isinstance(self.variables[v], b_classes.Object):
+                        variables_to_globals[v] = self.variables[v]
+                    elif isinstance(self.variables[v], b_classes.Function):
+                        if self.variables[v].is_builtin:
+                            variables_to_globals[v] = self.variables[v].function
+                    elif isinstance(self.variables[v], Exception):
+                        variables_to_globals[v] = self.variables[v]
+                # Setup execution context
+                globals_ = {
+                    **self.variables,
+                    "os": os,
+                    "importlib": importlib,
+                    "config": self.config,
+                    "sys": sys,
+                    "math": math,
+                    "random": random,
+                    "decimal": decimal,
+                    "Decimal": b_classes.Decimal,
+                    "re": re,
+                    "default_int": int,
+                    "time": time,
+                    "true": true,
+                    "false": false,
+                    "null": null,
+                    "Boolean": b_classes.Boolean,
+                }
+
+                # Copy environment and execute
+                exec_namespace = globals_.copy()
+                sys.path.append(module_path)
+                exec(code, exec_namespace, exec_namespace)
+                sys.path.remove(module_path)
+
+                # Get only added or changed values
+                changed_keys = {
+                    k for k in exec_namespace
+                    if k not in globals_ or exec_namespace[k] is not globals_[k]
+                }
+
+                # Setup alias for import
+                alias_to_use = as_name or module_name
+                if alias_to_use not in self.variables:
+                    self.variables[alias_to_use] = b_classes.Object(name=alias_to_use)
+
+                # Import functions
+                for name in changed_keys:
+                    value = exec_namespace[name]
+                    if callable(value):
+                        self.debug_log(f"<Function '{name}' imported from '{module_name}'>")
+                        self.variables[alias_to_use]._data[name] = b_classes.Function(
+                            is_builtin=True,
+                            function=value,
+                            name=name
+                        )
+
+                # Import variables
+                for name in changed_keys:
+                    value = exec_namespace[name]
+                    if not callable(value):
+                        self.variables[alias_to_use]._data[name] = value
         else:
+            if os.path.isfile(from_):
+                from_ = os.path.dirname(from_)
+            module_files = os.listdir(from_)
             closest_match = find_closest_match(module_files, module_name)
             if closest_match:
                 raise ImportError(f"No module named '{original_module_name}'. Did you mean: '{closest_match}'?")
@@ -933,7 +1043,7 @@ class Interpreter:
             if not object_:
                 raise NameError(f"Object '{statement['object_name']}' is not defined.")
             if hasattr(object_, statement["property"]["name"]):
-                return getattr(object_, statement["property"]["name"], null)
+                return b_classes.Literal(getattr(object_, statement["property"]["name"], null))
             if statement["property"]["name"] in object_._data:
                 if not isinstance(object_, b_classes.Object):
                     raise TypeError(f"Object '{statement['object_name']}' is not supported.")
@@ -941,7 +1051,7 @@ class Interpreter:
                 if self.repl:
                     if not (self.stack and self.stack[-1]["name"] == "print"):
                         print(ret)
-                return ret
+                return b_classes.Literal(ret)
             closest_match = find_closest_match(object_["variables"].keys(), statement["property"]["name"])
             if closest_match:
                 raise NameError(

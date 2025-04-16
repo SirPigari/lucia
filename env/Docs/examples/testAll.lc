@@ -8,6 +8,6 @@ test.testAll()
 
 print("Test suite finished")
 
-wait("1000ms")
-
 #config debug reset
+
+wait("1000ms")

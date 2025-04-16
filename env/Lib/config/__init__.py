@@ -1,4 +1,4 @@
-def get(key, default=None):
+def get_config(key, default=None):
 	return config.get(key, default)
 
 def set(key, value):
@@ -11,3 +11,6 @@ def save():
 
 def get_color(color):
 	return config["color_scheme"].get(color, "#FFFFFF")
+
+for key, value in config.items():
+	globals()[key] = value

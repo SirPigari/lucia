@@ -255,6 +255,8 @@ if config.get('home_dir', PLACEHOLDER) != expected_env:
     else:
         print(
             f"{hex_to_ansi(color_map.get('info', '#D10CFF'))}Environment is moded. Use 'env\\activate.py' to activate the environment. Please run the file again.{hex_to_ansi("reset")}")
+        clear_exit(0)
+
 
 os.chdir(config.get('home_dir', WORKING_DIR))
 if (len(sys.argv) > 1) and (not ("--no-title" in sys.argv)):

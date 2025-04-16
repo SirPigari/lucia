@@ -231,7 +231,7 @@ class Parser:
             elif self.token[0] == 'IDENTIFIER':
                 value = {"type": "VARIABLE", "name": self.token[1]}
             elif self.token[0] == 'STRING':
-                value = {"type": "STRING", "value": self.token[1].strip('"')}
+                value = {"type": "STRING", "value": self.token[1][1:-1]}
             elif self.token[0] == 'BOOLEAN':
                 value_ = self.token[1]
                 literal_value = True if value_ == 'true' else False if value_ == 'false' else None if value_ == 'null' else "Undefined"
@@ -514,7 +514,7 @@ class Parser:
         elif self.token[0] == 'IDENTIFIER':
             value = {"type": "VARIABLE", "name": self.token[1]}
         elif self.token[0] == 'STRING':
-            value = {"type": "STRING", "value": self.token[1].strip('"')}
+            value = {"type": "STRING", "value": self.token[1][1:-1]}
         elif self.token[0] == 'BOOLEAN':
             value_ = self.token[1]
             literal_value = True if value_ == 'true' else False if value_ == 'false' else None if value_ == 'null' else "Undefined"
