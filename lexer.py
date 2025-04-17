@@ -48,12 +48,14 @@ OPERATOR_PATTERN = r'(' + '|'.join(re.escape(op) for op in OPERATORS) + r')|' + 
 
 # Token specifications
 TOKEN_SPECIFICATION = [
+    ("FSTRINGSTART", r'f"|\f\''),                                                   # f" or f' to start the f-string
     ('STRING', r'".*?"|\'.*?\''),                                                   # Double or single quoted string
+    ('FSTRINGEND', r'"|\'(?!f)'),                                                   # Closing quote after f-string (but not f" or f')
     ('BOOLEAN', r'\b(true|false|null)\b'),                                          # Boolean literals
     ('COMMENT_INLINE', r'<#.*?#>'),                                                 # In-line comment
     ('COMMENT_SINGLE', r'//.*'),                                                    # Single-line comment
     ('COMMENT_MULTI', r'/\*[\s\S]*?\*/'),                                           # Multi-line comment (replaces DOTALL flag)
-    ('OPERATOR', OPERATOR_PATTERN),                                                  # Operators
+    ('OPERATOR', OPERATOR_PATTERN),                                                 # Operators
     ('IDENTIFIER', r'\bnon-static\b|\b[a-zA-Z_]\w*\b'),                             # Identifiers (variable/function names)
     ('NUMBER', r'-?\b\d+(\.\d+)?\b'),                                               # Integer or decimal number
     ('SEPARATOR', r'\.\.\.|[(){}\[\];:.,]'),                                        # Separators
@@ -66,6 +68,7 @@ TOKEN_REGEX = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPECI
 
 def lexer(code, include_comments=False):
     tokens = []
+    in_fstring = False
     for match in re.finditer(TOKEN_REGEX, code):
         token_type = match.lastgroup
         value = match.group(token_type)
@@ -74,8 +77,16 @@ def lexer(code, include_comments=False):
                 continue
             else:
                 value = re.sub(r' {4}|	| {3}| {2}', '\\t', value)
-        if token_type != 'WHITESPACE':
-            tokens.append((token_type, value))
+        if token_type == 'FSTRINGSTART':
+            in_fstring = True
+        if token_type == 'FSTRINGEND':
+            in_fstring = False
+        if token_type == 'WHITESPACE':
+            if not in_fstring:
+                continue
+            else:
+                value = re.sub(r' {4}|	| {3}| {2}', '\\t', value)
+        tokens.append((token_type, value))
     return tokens
 
 

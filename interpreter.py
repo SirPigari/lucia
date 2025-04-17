@@ -108,6 +108,7 @@ class Interpreter:
             "credits": b_classes.Function(is_builtin=True, function=lambda: b_functions.credits(self.config), name="credits"),
             "keywords": b_classes.Function(is_builtin=True, function=b_functions.keywords, name="keywords"),
             "version": b_classes.Function(is_builtin=True, function=lambda: b_functions.version(self.config), name="version"),
+            "numver": b_classes.Function(is_builtin=True, function=lambda: b_functions.numver(self.config), name="numver"),
             "clear": b_classes.Function(is_builtin=True, function=b_functions.clear, name="clear"),
             "signature": b_classes.Function(is_builtin=True, function=self.signature, name="signature"),
             "declen": b_classes.Function(is_builtin=True, function=b_functions.declen, name="declen"),
@@ -254,6 +255,7 @@ class Interpreter:
             # VARIABLES
             "VARIABLEDECLARATION": self.handle_variable_declaration,
             "STRING": lambda s: str(s["value"]),
+            "FSTRING": self.handle_fstring,
             "NUMBER": lambda s: float(s["value"]),
             "BOOLEAN": lambda s: b_classes.Boolean(s["value"], s["literal_value"]),
             "VARIABLE": self.handle_variable,
@@ -1298,6 +1300,15 @@ class Interpreter:
 
         body = object_.init
         parameters = object_.parameters
+
+    def handle_fstring(self, statement):
+        fstring = statement["value"]
+        output = ""
+
+        for f in fstring:
+            output += str(self.evaluate(f))
+
+        return output
 
 
     def handle_exception_definition(self, statement):

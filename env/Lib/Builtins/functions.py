@@ -244,6 +244,10 @@ def version(config=None):
     version = config.get("version", "version unknown")
     return f"Lucia-{version}"
 
+def numver(config):
+    version = config.get("version", "version unknown")
+    return version
+
 def clear():
     os.system("cls")
 

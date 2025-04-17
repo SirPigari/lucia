@@ -97,6 +97,9 @@ class Parser:
         if self.token == ('IDENTIFIER', 'if'):
             return self.parse_if_statement()
 
+        if self.token[0] == "FSTRINGSTART":
+            return self.parse_fstring()
+
         if self.token == ('IDENTIFIER', 'try'):
             return self.parse_try_statement()
 
@@ -864,3 +867,29 @@ class Parser:
             operator = token
         self.next()
         return operator
+
+    def parse_fstring(self):
+        self.check_for('FSTRINGSTART')
+        quote_type = self.token[1][1:]
+        self.next()
+        fstring = []
+        while self.token != ('FSTRINGEND', quote_type):
+            if self.token == (None, None):
+                raise SyntaxError("Unexpected end of input in f-string")
+            if self.token == ('SEPARATOR', '{'):
+                self.next()
+                value = self.parse_expression()
+                if self.token == ('SEPARATOR', '}'):
+                    self.next()
+                else:
+                    raise SyntaxError("Expected '}' in f-string")
+                fstring.append(value)
+                continue
+            fstring.append({"type": "STRING", "value": self.token[1]})
+            self.next()
+        self.check_for('FSTRINGEND')
+        self.next()
+        return {
+            "type": "FSTRING",
+            "value": fstring
+        }

@@ -1,6 +1,8 @@
 #config debug = true
 
-print("LuciaAPL Test Suite")
+testSuiteVersion = "0.0.2b"
+
+print(f"LuciaAPL {numver()} Test Suite ({testSuiteVersion})")
 
 import test
 
