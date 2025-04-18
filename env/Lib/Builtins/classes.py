@@ -406,7 +406,7 @@ class Variable:
 
 class Decimal(decimal.Decimal):
 	def __repr__(self):
-		return f"{self.__class__.__name__}({self})"
+		return f"{self}"
 
 	def __len__(self):
 		return len(str(self))

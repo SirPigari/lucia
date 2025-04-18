@@ -69,6 +69,7 @@ TOKEN_REGEX = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPECI
 def lexer(code, include_comments=False):
     tokens = []
     in_fstring = False
+    in_fstring_braces = False
     for match in re.finditer(TOKEN_REGEX, code):
         token_type = match.lastgroup
         value = match.group(token_type)
@@ -79,10 +80,14 @@ def lexer(code, include_comments=False):
                 value = re.sub(r' {4}|	| {3}| {2}', '\\t', value)
         if token_type == 'FSTRINGSTART':
             in_fstring = True
+        if token_type == 'SEPARATOR' and value == '{' and in_fstring:
+            in_fstring_braces = True
+        if token_type == 'SEPARATOR' and value == '}' and in_fstring:
+            in_fstring_braces = False
         if token_type == 'FSTRINGEND':
             in_fstring = False
         if token_type == 'WHITESPACE':
-            if not in_fstring:
+            if (not in_fstring) or in_fstring_braces:
                 continue
             else:
                 value = re.sub(r' {4}|	| {3}| {2}', '\\t', value)

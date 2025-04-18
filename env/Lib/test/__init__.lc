@@ -45,6 +45,17 @@ public static final fun testIndex() -> void:
     return null
 end
 
+public static final fun testFString() -> void:
+    a: int = 1
+    b: int = 2
+    c: str = "test"
+    d: float = 3.14
+
+    print(f"Expected: 1; 2; test; 3.14 Got: {a}; {b}; {c}; {d}")
+
+    return null
+end
+
 public static final fun testFunctionCalls() -> int:
     private static mutable fun t() -> int:
         return 0
@@ -204,6 +215,9 @@ public static final fun testAll() -> int:
     print(testOperators())
     print(testLibs())
     print(testFunctionCalls())
+    print(testFunction())
+    print(testIndex())
+    print(testFString())
     testImports()
     forget i
     i: any = "test"

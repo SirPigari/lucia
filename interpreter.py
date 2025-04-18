@@ -454,8 +454,13 @@ class Interpreter:
             if not self.check_type(get_type(value), type):
                 raise TypeError(f"Expected type '{type}', but got '{get_type(value)}'")
             if type == "int":
+                if isinstance(value, float):
+                    if value.is_integer():
+                        value = int(value)
+                    else:
+                        raise TypeError(f"Expected type 'int', but got 'float'")
                 value = b_classes.Int(value)
-            self.debug_log(f"<Variable '{statement['name']}' declared with value {repr(value)}.>")
+            self.debug_log(f"<Variable '{statement['name']}' declared with value {repr(value)}>")
         else:
             self.debug_log(f"<Variable '{statement['name']}' declared.>")
         self.variables[statement["name"]] = b_classes.Variable(statement["name"], value, {"is_final": is_final, "is_public": is_public, "is_static": is_static}, type_=type)
@@ -528,7 +533,7 @@ class Interpreter:
         return self.make_operation(left, right, operator)
 
     def make_operation(self, left, right, operator):
-        self.debug_log(f"<Operation: {left} {operator} {right}>")
+        self.debug_log(f"<Operation: {repr(left)} {operator} {repr(right)}>")
         if operator == "+":
             return left + right
         elif operator == "-":
@@ -1308,6 +1313,7 @@ class Interpreter:
         for f in fstring:
             output += str(self.evaluate(f))
 
+        self.debug_log(f"<f-string evaluated: {output}>")
         return output
 
 
