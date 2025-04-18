@@ -23,8 +23,10 @@ false = b_classes.Boolean(False)
 true = b_classes.Boolean(True)
 null = b_classes.Boolean(None)
 
+
 def hash_object(obj):
     return hashlib.sha256(str(obj).encode()).hexdigest()
+
 
 def find_closest_match(word_list, target_word):
     if not word_list or target_word is None:
@@ -48,7 +50,7 @@ def hex_to_ansi(hex_color, config=None):
     if not match:
         return "\033[0m"
 
-    r, g, b = tuple(int(match.group(1)[i:i+2], 16) for i in (0, 2, 4))
+    r, g, b = tuple(int(match.group(1)[i:i + 2], 16) for i in (0, 2, 4))
     return f"\033[38;2;{r};{g};{b}m"
 
 
@@ -88,6 +90,77 @@ def _handle_invalid_type(type_, valid_types):
     raise TypeError(f"Type '{type_}' is not supported.")
 
 
+def setprec(value: int = None):
+    if not (isinstance(value, int) or isinstance(value, float)) and value is not None:
+        raise TypeError(f"Expected an integer for 'value', but got '{get_type(value)}'")
+    if value:
+        value = int(value)
+        decimal.getcontext().prec = value
+    return decimal.getcontext().prec
+
+
+def signature(variable):
+    hash_ = hash_object(variable)
+    return hash_
+
+
+def id_(obj):
+    value = obj
+    if isinstance(obj, b_classes.Variable):
+        value = obj.value
+    return id(value)
+
+
+def check_type(type_, expected=None, return_value=None):
+    valid_types = b_variables.VALID_TYPES
+
+    types_mapping = {
+        "void": "null",
+        "Decimal": "float",
+        b_classes.List: "list",
+        b_classes.Map: "map",
+        b_classes.Function: "function",
+        b_classes.Object: "object",
+        b_classes.Decimal: "float",
+    }
+
+    type_ = types_mapping.get(type_, type_)
+    expected = types_mapping.get(expected, expected)
+
+    if isinstance(type_, b_classes.Boolean):
+        type_ = "bool"
+    if isinstance(expected, b_classes.Boolean):
+        expected = "bool"
+    if isinstance(return_value, b_classes.Boolean):
+        return_value = return_value.value
+
+    if type_ == "bool" and expected == "null" and return_value == "null":
+        return True
+
+    if expected:
+        if "any" in {type_, expected}:
+            return True
+        if expected not in valid_types or type_ not in valid_types:
+            return _handle_invalid_type(expected if expected not in valid_types else type_, valid_types)
+
+        if {type_, expected} == {"int", "float"}:
+            return True
+
+        if {type_, expected} == {"null", "bool"}:
+            return True
+
+        if {type_, expected} == {"int", "bool"}:
+            if return_value in {0, 1, "null"}:
+                return True
+
+        if type_ != expected:
+            raise TypeError(f"Expected type '{expected}', but got '{type_}'")
+
+        return True
+
+    return type_ in valid_types or _handle_invalid_type(type_, valid_types)
+
+
 class Interpreter:
     def __init__(self, config, filename=None, repl=False):
         self.variables = {
@@ -110,7 +183,7 @@ class Interpreter:
             "version": b_classes.Function(is_builtin=True, function=lambda: b_functions.version(self.config), name="version"),
             "numver": b_classes.Function(is_builtin=True, function=lambda: b_functions.numver(self.config), name="numver"),
             "clear": b_classes.Function(is_builtin=True, function=b_functions.clear, name="clear"),
-            "signature": b_classes.Function(is_builtin=True, function=self.signature, name="signature"),
+            "signature": b_classes.Function(is_builtin=True, function=signature, name="signature"),
             "declen": b_classes.Function(is_builtin=True, function=b_functions.declen, name="declen"),
             "type": b_classes.Function(is_builtin=True, function=get_type, name="type"),
             "File": b_classes.Object(is_builtin=True, object=b_classes.File, name="File"),
@@ -118,7 +191,8 @@ class Interpreter:
             "ListPatternRecognitionWarning": b_classes.Object(is_builtin=True, object=b_exceptions.ListPatternRecognitionWarning, name="ListPatternRecognitionWarning"),
             "RecursionLimitWarning": b_classes.Object(is_builtin=True, object=b_exceptions.RecursionLimitWarning, name="RecursionLimitWarning"),
             "TestContext": b_classes.Object(is_builtin=True, object=b_classes.TestContext, name="TestContext"),
-            "setprec": b_classes.Function(is_builtin=True, function=self.setprec, name="setprec"),
+            "setprec": b_classes.Function(is_builtin=True, function=setprec, name="setprec"),
+            "id": b_classes.Function(is_builtin=True, function=id_, name="id"),
         }
 
         self.variables.update({
@@ -135,18 +209,11 @@ class Interpreter:
         self.is_returning = False
         self.stack = []
 
-    def setprec(self, value: int=None):
-        if not (isinstance(value, int) or isinstance(value, float)) and value is not None:
-            raise TypeError(f"Expected an integer for 'value', but got '{get_type(value)}'")
-        if value:
-            value = int(value)
-            decimal.getcontext().prec = value
-        return decimal.getcontext().prec
-
     def warn(self, message, category, stacklevel=3):
         if self.config.get('warnings', True):
             if self.config.get('use_lucia_traceback', True):
-                print(f"{hex_to_ansi(self.config.get("color_scheme", {}).get('warning', '#FFC107'), self.config)}-> File '{self.filename}' warning:\n{str(category.__name__)}: {message}{hex_to_ansi("reset", self.config)}")
+                print(
+                    f"{hex_to_ansi(self.config.get("color_scheme", {}).get('warning', '#FFC107'), self.config)}-> File '{self.filename}' warning:\n{str(category.__name__)}: {message}{hex_to_ansi("reset", self.config)}")
                 return
             else:
                 warnings.warn(message, category, stacklevel=stacklevel)
@@ -159,79 +226,26 @@ class Interpreter:
         if stack_len == max_recursion:
             self.warn("Recursion limit reached.", b_exceptions.RecursionLimitWarning)
 
-    def signature(self, variable):
-        hash = hash_object(variable)
-        return hash
-
     @property
     def get_variables(self):
         variables = self.variables
-        vars = {}
+        vars_ = {}
         for var in variables:
             if isinstance(variables[var], b_classes.Variable):
-                vars[var] = variables[var].value
+                vars_[var] = variables[var].value
             elif isinstance(variables[var], b_classes.Object):
-                vars[var] = variables[var]._data
+                vars_[var] = variables[var]._data
             elif isinstance(variables[var], b_classes.Function):
-                vars[var] = variables[var].function
+                vars_[var] = variables[var].function
             else:
-                vars[var] = variables[var]
-        return vars
-
+                vars_[var] = variables[var]
+        return vars_
 
     def debug_log(self, *args):
         if self.config.get('debug', False):
             if self.config.get('debug_mode', 'normal') == 'normal' or self.config.get('debug_mode', 'normal') == 'full':
-                print(f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'), self.config)}{''.join(map(str, args))}{hex_to_ansi("reset", self.config)}")
-
-    def check_type(self, type_, expected=None, return_value=None):
-        valid_types = b_variables.VALID_TYPES
-
-        types_mapping = {
-            "void": "null",
-            "Decimal": "float",
-            b_classes.List: "list",
-            b_classes.Map: "map",
-            b_classes.Function: "function",
-            b_classes.Object: "object",
-            b_classes.Decimal: "float",
-        }
-
-        type_ = types_mapping.get(type_, type_)
-        expected = types_mapping.get(expected, expected)
-
-        if isinstance(type_, b_classes.Boolean):
-            type_ = "bool"
-        if isinstance(expected, b_classes.Boolean):
-            expected = "bool"
-        if isinstance(return_value, b_classes.Boolean):
-            return_value = return_value.value
-
-        if type_ == "bool" and expected == "null" and return_value == "null":
-            return True
-
-        if expected:
-            if "any" in {type_, expected}:
-                return True
-            if expected not in valid_types or type_ not in valid_types:
-                return _handle_invalid_type(expected if expected not in valid_types else type_, valid_types)
-
-            if {type_, expected} == {"int", "float"}:
-                return True
-
-            if {type_, expected} == {"null", "bool"}:
-                return True
-
-            if {type_, expected} == {"int", "bool"}:
-                if return_value in {0, 1, "null"}:
-                    return True
-
-            if type_ != expected:
-                raise TypeError(f"Expected type '{expected}', but got '{type_}'")
-
-            return True
-
-        return type_ in valid_types or _handle_invalid_type(type_, valid_types)
+                print(
+                    f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'), self.config)}{''.join(map(str, args))}{hex_to_ansi("reset", self.config)}")
 
     def interpret(self, statements):
         for statement in statements:
@@ -239,7 +253,6 @@ class Interpreter:
             self.evaluate(statement)
             if self.is_returning:
                 return self.return_value
-
 
     def evaluate(self, statement):
         statement_mapping = {
@@ -299,7 +312,8 @@ class Interpreter:
         args = statement["parameters"]
         body = statement["body"]
         return_type = statement["return_type"]
-        modifiers = {"is_static": statement.get("is_static", False), "is_async": statement.get("is_async", False), "is_final": statement.get("is_final", False), "is_public": statement.get("is_public", True)}
+        modifiers = {"is_static": statement.get("is_static", False), "is_async": statement.get("is_async", False),
+                     "is_final": statement.get("is_final", False), "is_public": statement.get("is_public", True)}
         if name in self.variables:
             fun = self.variables[name]
             if isinstance(fun, b_classes.Function):
@@ -347,9 +361,9 @@ class Interpreter:
         else:
             raise TypeError(f"Object '{obj.name}' is not callable.")
 
-    def call_function(self, function, pos_args, named_args, custom_name=None, locals=None):
-        if not locals:
-            locals = {}
+    def call_function(self, function, pos_args, named_args, custom_name=None, locals_=None):
+        if not locals_:
+            locals_ = {}
         name = f"'{function.name}'"
         if custom_name:
             name = f"'{custom_name}' (reassigned from '{function.name}')"
@@ -370,7 +384,7 @@ class Interpreter:
         body = function.body
         parameters = function.parameters
         return_type = self.evaluate(function.return_type)
-        self.check_type(return_type)
+        check_type(return_type)
 
         total_args = len(pos_args) + len(named_args)
         required_params = [param for param in parameters if param['default_value'] is None]
@@ -392,7 +406,7 @@ class Interpreter:
             default_value = self.evaluate(parameter['default_value'])
 
             if param_name in named_args:
-                if not self.check_type(get_type(named_args[param_name]), param_type):
+                if not check_type(get_type(named_args[param_name]), param_type):
                     raise TypeError(
                         f"Expected type '{param_type}' for argument '{param_name}', but got '{self.get_type(named_args[param_name])}'")
                 all_args[param_name] = named_args[param_name]
@@ -404,13 +418,13 @@ class Interpreter:
                 raise TypeError(f"Missing required positional argument: '{param_name}'")
 
         i = Interpreter(self.config)
-        i.variables = {**self.variables, **all_args, **locals}  # Merge all arguments into the variables environment
+        i.variables = {**self.variables, **all_args, **locals_}  # Merge all arguments into the variables environment
         self.stack.append({"name": name, "variables": {**self.variables, **all_args}, "return_value": i.return_value,
                            "is_returning": i.is_returning})
         self.check_stack()
         i.stack = self.stack
         i.interpret(body)
-        self.check_type(get_type(i.return_value), return_type, i.return_value)
+        check_type(get_type(i.return_value), return_type, i.return_value)
         self.variables = self.stack[-1]["variables"]
         self.return_value = self.stack[-1]["return_value"]
         self.is_returning = self.stack[-1]["is_returning"]
@@ -437,8 +451,8 @@ class Interpreter:
         is_final = statement["is_final"]
         is_public = statement["is_public"]
         is_static = statement["is_static"]
-        self.check_type(type)
-        if not self.check_type(get_type(value), type):
+        check_type(type)
+        if not check_type(get_type(value), type):
             raise TypeError(f"Expected type '{type}', but got '{get_type(value)}'")
         if not is_public:
             return
@@ -451,7 +465,7 @@ class Interpreter:
                 if var.modifiers["is_final"]:
                     raise PermissionError(f"Function '{statement["name"]}' is final and cannot be re-declared.")
         if not value is None:
-            if not self.check_type(get_type(value), type):
+            if not check_type(get_type(value), type):
                 raise TypeError(f"Expected type '{type}', but got '{get_type(value)}'")
             if type == "int":
                 if isinstance(value, float):
@@ -463,7 +477,9 @@ class Interpreter:
             self.debug_log(f"<Variable '{statement['name']}' declared with value {repr(value)}>")
         else:
             self.debug_log(f"<Variable '{statement['name']}' declared.>")
-        self.variables[statement["name"]] = b_classes.Variable(statement["name"], value, {"is_final": is_final, "is_public": is_public, "is_static": is_static}, type_=type)
+        self.variables[statement["name"]] = b_classes.Variable(statement["name"], value,
+                                                               {"is_final": is_final, "is_public": is_public,
+                                                                "is_static": is_static}, type_=type)
         return self.variables[statement["name"]]
 
     def handle_variable(self, statement):
@@ -493,7 +509,7 @@ class Interpreter:
         if name not in self.variables:
             self.variables[name] = b_classes.Variable(name, value, {"is_final": False})
         if isinstance(self.variables[name], b_classes.Variable):
-            if not self.check_type(get_type(value), self.variables[name].type):
+            if not check_type(get_type(value), self.variables[name].type):
                 raise TypeError(f"Expected type '{self.variables[name].type}', but got '{get_type(value)}'")
             self.debug_log(f"<Variable '{name}' assigned to {repr(value)}.>")
             self.variables[name].value = value
@@ -578,7 +594,7 @@ class Interpreter:
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
             if left.modifiers["is_final"]:
                 raise PermissionError(f"Variable '{left.name}' is final and cannot be re-assigned.")
-            if not self.check_type(get_type(left.value), get_type(right)):
+            if not check_type(get_type(left.value), get_type(right)):
                 raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value += right
             return left
@@ -587,7 +603,7 @@ class Interpreter:
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
             if left.modifiers["is_final"]:
                 raise PermissionError(f"Variable '{left.name}' is final and cannot be re-assigned.")
-            if not self.check_type(get_type(left.value), get_type(right)):
+            if not check_type(get_type(left.value), get_type(right)):
                 raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value -= right
             return left
@@ -596,7 +612,7 @@ class Interpreter:
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
             if left.modifiers["is_final"]:
                 raise PermissionError(f"Variable '{left.name}' is final and cannot be re-assigned.")
-            if not self.check_type(get_type(left.value), get_type(right)):
+            if not check_type(get_type(left.value), get_type(right)):
                 raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value *= right
             return left
@@ -605,7 +621,7 @@ class Interpreter:
                 raise TypeError(f"Cannot assign to non-variable '{left}'")
             if left.modifiers["is_final"]:
                 raise PermissionError(f"Variable '{left.name}' is final and cannot be re-assigned.")
-            if not self.check_type(get_type(left.value), get_type(right)):
+            if not check_type(get_type(left.value), get_type(right)):
                 raise TypeError(f"Expected type '{get_type(left.value)}', but got '{get_type(right)}'")
             left.value /= right
             return left
@@ -722,7 +738,8 @@ class Interpreter:
             if not index in self.variables[value["name"]]:
                 closest_match = find_closest_match(self.variables[value["name"]], value["name"])
                 if closest_match:
-                    raise b_exceptions.KeyError(f"Key '{index}' not found in '{value["name"]}'. Did you mean: '{closest_match}'?")
+                    raise b_exceptions.KeyError(
+                        f"Key '{index}' not found in '{value["name"]}'. Did you mean: '{closest_match}'?")
                 else:
                     raise b_exceptions.KeyError(f"Key '{index}' not found in '{value["name"]}'.")
             var = self.variables[value["name"]].value
@@ -829,7 +846,8 @@ class Interpreter:
 
                     alias_to_use = as_name or module_name
                     if not alias_to_use in self.variables:
-                        self.variables[alias_to_use] = b_classes.Object(name=alias_to_use, id_=os.path.join(from_, module_name))
+                        self.variables[alias_to_use] = b_classes.Object(name=alias_to_use,
+                                                                        id_=os.path.join(from_, module_name))
                     self.variables[alias_to_use]._data.update(variables_to_update)
                     self.variables[alias_to_use].locals = __locals
                 elif module.rsplit(".", 1)[1] == "py":
@@ -1078,7 +1096,8 @@ class Interpreter:
                     self.debug_log(f"<Function '{custom_name}' (reassigned from '{function_name}') called>")
                 else:
                     self.debug_log(f"<Function '{object_name}.{function_name}' called>")
-                self.stack.append({"name": f"'{object_name}.{function_name}'", "variables": self.variables, "return_value": self.return_value,
+                self.stack.append({"name": f"'{object_name}.{function_name}'", "variables": self.variables,
+                                   "return_value": self.return_value,
                                    "is_returning": self.is_returning})
                 self.check_stack()
                 ret = b_classes.Literal(function(*pos_args, **named_args))
@@ -1105,15 +1124,16 @@ class Interpreter:
                 else:
                     ret = function(*pos_args, **named_args)
                 self.stack.pop()
-                if not ret is None:
+                if ret is not None:
                     self.debug_log(f"<Function {name} returned {repr(ret)}>")
                 return b_classes.Literal(ret)
-            return b_classes.Literal(self.call_function(function, pos_args, named_args, custom_name=custom_name, locals=object_.locals))
+            return b_classes.Literal(
+                self.call_function(function, pos_args, named_args, custom_name=custom_name, locals_=object_.locals))
 
         body = function["body"]
         parameters = function["parameters"]
         return_type = self.evaluate(function["return_type"])
-        self.check_type(return_type)
+        check_type(return_type)
 
         total_args = len(pos_args) + len(named_args)
         required_params = [param for param in parameters if param['default_value'] is None]
@@ -1132,7 +1152,7 @@ class Interpreter:
             default_value = parameter['default_value']
 
             if param_name in named_args:
-                if not self.check_type(self.get_type(named_args[param_name]), param_type):
+                if not check_type(self.get_type(named_args[param_name]), param_type):
                     raise TypeError(
                         f"Expected type '{param_type}' for argument '{param_name}', but got '{self.get_type(named_args[param_name])}'")
                 all_args[param_name] = named_args[param_name]
@@ -1150,7 +1170,7 @@ class Interpreter:
         self.check_stack()
         i.stack = self.stack
         i.interpret(body)
-        self.check_type(get_type(i.return_value), return_type, i.return_value)
+        check_type(get_type(i.return_value), return_type, i.return_value)
         self.variables = self.stack[-1]["variables"]
         self.return_value = self.stack[-1]["return_value"]
         self.is_returning = self.stack[-1]["is_returning"]
@@ -1235,7 +1255,8 @@ class Interpreter:
         predef_type = statement["predef_type"]
 
         if not self.config.get("use_predefs", True):
-            self.warn("Predefs are disabled in the configuration. This may cause errors or unexpected behavior.", b_exceptions.PredefDisabledWarning)
+            self.warn("Predefs are disabled in the configuration. This may cause errors or unexpected behavior.",
+                      b_exceptions.PredefDisabledWarning)
             return
 
         if predef_type == "ALIAS":
@@ -1315,7 +1336,6 @@ class Interpreter:
 
         self.debug_log(f"<f-string evaluated: {output}>")
         return output
-
 
     def handle_exception_definition(self, statement):
         name = statement["name"]

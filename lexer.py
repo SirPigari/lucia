@@ -48,19 +48,19 @@ OPERATOR_PATTERN = r'(' + '|'.join(re.escape(op) for op in OPERATORS) + r')|' + 
 
 # Token specifications
 TOKEN_SPECIFICATION = [
-    ("FSTRINGSTART", r'f"|\f\''),                                                   # f" or f' to start the f-string
-    ('STRING', r'".*?"|\'.*?\''),                                                   # Double or single quoted string
-    ('FSTRINGEND', r'"|\'(?!f)'),                                                   # Closing quote after f-string (but not f" or f')
-    ('BOOLEAN', r'\b(true|false|null)\b'),                                          # Boolean literals
-    ('COMMENT_INLINE', r'<#.*?#>'),                                                 # In-line comment
-    ('COMMENT_SINGLE', r'//.*'),                                                    # Single-line comment
-    ('COMMENT_MULTI', r'/\*[\s\S]*?\*/'),                                           # Multi-line comment (replaces DOTALL flag)
-    ('OPERATOR', OPERATOR_PATTERN),                                                 # Operators
-    ('IDENTIFIER', r'\bnon-static\b|\b[a-zA-Z_]\w*\b'),                             # Identifiers (variable/function names)
-    ('NUMBER', r'-?\b\d+(\.\d+)?\b'),                                               # Integer or decimal number
-    ('SEPARATOR', r'\.\.\.|[(){}\[\];:.,]'),                                        # Separators
-    ('WHITESPACE', r'\s+'),                                                         # Whitespace
-    ('INVALID', r'.')                                                               # Any other characters
+    ("FSTRINGSTART", r'f"|f\''),                                    # f" or f' to start the f-string
+    ('STRING', r'".*?"|\'.*?\''),                                   # Double or single quoted string
+    ('FSTRINGEND', r'"|\'(?!f)'),                                   # Closing quote after f-string (but not f" or f')
+    ('BOOLEAN', r'\b(true|false|null)\b'),                          # Boolean literals
+    ('COMMENT_INLINE', r'<#.*?#>'),                                 # In-line comment
+    ('COMMENT_SINGLE', r'//.*'),                                    # Single-line comment
+    ('COMMENT_MULTI', r'/\*[\s\S]*?\*/'),                           # Multi-line comment (replaces DOTALL flag)
+    ('OPERATOR', OPERATOR_PATTERN),                                 # Operators
+    ('IDENTIFIER', r'\bnon-static\b|\b[a-zA-Z_]\w*\b'),             # Identifiers (variable/function names)
+    ('NUMBER', r'-?\b\d+(\.\d+)?\b'),                               # Integer or decimal number
+    ('SEPARATOR', r'\.\.\.|[(){}\[\];:.,\?]'),                      # Separators
+    ('WHITESPACE', r'\s+'),                                         # Whitespace
+    ('INVALID', r'.')                                               # Any other characters
 ]
 
 TOKEN_REGEX = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPECIFICATION)
