@@ -192,6 +192,7 @@ class Interpreter:
             "RecursionLimitWarning": b_classes.Object(is_builtin=True, object=b_exceptions.RecursionLimitWarning, name="RecursionLimitWarning"),
             "TestContext": b_classes.Object(is_builtin=True, object=b_classes.TestContext, name="TestContext"),
             "setprec": b_classes.Function(is_builtin=True, function=setprec, name="setprec"),
+            "getprec": b_classes.Function(is_builtin=True, function=lambda: decimal.getcontext().prec, name="getprec"),
             "id": b_classes.Function(is_builtin=True, function=id_, name="id"),
         }
 
@@ -1059,7 +1060,26 @@ class Interpreter:
             if hasattr(object_, name_):
                 function = getattr(object_, name_)
                 if callable(function):
-                    return function(*pos_args, **named_args)
+                    if isinstance(function, b_classes.Function):
+                        if function.is_builtin:
+                            self.debug_log(f"<Function '{statement['object_name']}.{name_}' called>")
+                            return function.function(*pos_args, **named_args)
+                        else:
+                            self.debug_log(f"<Function '{statement['object_name']}.{name_}' called>")
+                            return function(*pos_args, **named_args)
+                    else:
+                        self.debug_log(f"<Function '{statement['object_name']}.{name_}' called>")
+                    self.stack.append({"name": f"'{statement['object_name']}.{name_}'", "variables": self.variables,
+                                       "return_value": self.return_value,
+                                       "is_returning": self.is_returning})
+                    value = function(*pos_args, **named_args)
+                    self.stack.pop()
+                    if not value is None:
+                        self.debug_log(f"<Function '{statement['object_name']}.{name_}' returned {repr(value)}>")
+                    if self.repl:
+                        if not (self.stack and self.stack[-1]["name"] == "print"):
+                            print(value)
+                    return value
                 else:
                     raise TypeError(f"Object '{object_}' has no function '{name_}'.")
             return self.call_object_function(object_, name_, pos_args, named_args, statement["object_name"])
@@ -1067,9 +1087,17 @@ class Interpreter:
             self.debug_log(f"<Property '{statement['object_name']}.{statement['property']['name']}' accessed>")
             if not object_:
                 raise NameError(f"Object '{statement['object_name']}' is not defined.")
+            if isinstance(object_, b_classes.Variable):
+                object_ = object_.value
+            if isinstance(object_, b_classes.Function) and object_.is_builtin:
+                object_ = object_.function
             if hasattr(object_, statement["property"]["name"]):
-                return b_classes.Literal(getattr(object_, statement["property"]["name"], null))
-            if statement["property"]["name"] in object_._data:
+                ret = b_classes.Literal(getattr(object_, statement["property"]["name"], null))
+                if self.repl:
+                    if not (self.stack and self.stack[-1]["name"] == "print"):
+                        print(ret)
+                return ret
+            if hasattr(object_, "_data") and statement["property"]["name"] in object_._data:
                 if not isinstance(object_, b_classes.Object):
                     raise TypeError(f"Object '{statement['object_name']}' is not supported.")
                 ret = object_._data.get(statement["property"]["name"], null)
@@ -1077,11 +1105,16 @@ class Interpreter:
                     if not (self.stack and self.stack[-1]["name"] == "print"):
                         print(ret)
                 return b_classes.Literal(ret)
-            closest_match = find_closest_match(object_["variables"].keys(), statement["property"]["name"])
+            values = dir(object_)
+            if hasattr(object_, "_data"):
+                values.append(object_._data.keys())
+            if hasattr(object_, "variables"):
+                values.append(object_.variables.keys())
+            closest_match = find_closest_match(values, statement["property"]["name"])
             if closest_match:
                 raise NameError(
-                    f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined. Did you mean: '{statement['object_name']}.{closest_match}'?")
-            raise NameError(f"Variable '{statement['object_name']}.{statement['property']['name']}' is not defined.")
+                    f"Object '{statement['object_name']}' has no property '{statement['property']['name']}'. Did you mean: '{closest_match}'?")
+            raise NameError(f"Object '{statement['object_name']}' has no property '{statement['property']['name']}'.")
         else:
             raise SyntaxError(f"Unexpected property type: {statement['property']['type']}")
 

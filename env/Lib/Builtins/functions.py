@@ -114,21 +114,121 @@ def exit():
     raise SystemExit
 
 
-def help(config=None, command=None):
+def help(config=None, func=None):
     info = {
         "print": {
             "example": "print(3.14, 'Hello', True, x + y)",
             "description": "Outputs the given arguments to the console."
         },
+        "input": {
+            "example": "input('Enter your name: ')",
+            "description": "Reads a line of input from the user."
+        },
+        "len": {
+            "example": "len([1, 2, 3])",
+            "description": "Returns the number of items in an object."
+        },
+        "declen": {
+            "example": "declen(3.14159)",
+            "description": "Returns the decimal length of a float."
+        },
+        "wait": {
+            "example": "wait(1000)",
+            "description": "Pauses the program for the specified number of milliseconds."
+        },
+        "int": {
+            "example": "int('42')",
+            "description": "Converts a value to an integer."
+        },
+        "float": {
+            "example": "float('3.14')",
+            "description": "Converts a value to a float."
+        },
+        "str": {
+            "example": "str(42)",
+            "description": "Converts a value to a string."
+        },
+        "range": {
+            "example": "range(1, 10, 2)",
+            "description": "Creates a range object."
+        },
+        "exit": {
+            "example": "exit()",
+            "description": "Exits the program."
+        },
+        "help": {
+            "example": "help('print')",
+            "description": "Displays help information for a command."
+        },
+        "license": {
+            "example": "license()",
+            "description": "Displays the license information."
+        },
+        "numver": {
+            "example": "numver()",
+            "description": "Displays the version number."
+        },
+        "readme": {
+            "example": "readme()",
+            "description": "Displays the README file content."
+        },
+        "modules": {
+            "example": "modules()",
+            "description": "Displays the available modules."
+        },
+        "keywords": {
+            "example": "keywords()",
+            "description": "Displays the available keywords."
+        },
+        "credits": {
+            "example": "credits()",
+            "description": "Displays the credits information."
+        },
+        "version": {
+            "example": "version()",
+            "description": "Displays the version information."
+        },
+        "clear": {
+            "example": "clear()",
+            "description": "Clears the console."
+        },
+        "styledprint": {
+            "example": "styledprint('Hello', '#FF5733', bold=True)",
+            "description": "Prints styled text to the console."
+        },
+        "signature": {
+            "example": "signature(function)",
+            "description": "Displays the signature of a function."
+        },
+        "type": {
+            "example": "type(variable)",
+            "description": "Returns the type of an object."
+        },
+        "File": {
+            "example": "File('path/to/file.txt')",
+            "description": "Represents a file object."
+        },
+        "setprec": {
+            "example": "setprec(2)",
+            "description": "Sets the precision for decimal operations."
+        },
+        "getprec": {
+            "example": "getprec()",
+            "description": "Gets the current precision for decimal operations."
+        },
+        "id": {
+            "example": "id(variable)",
+            "description": "Returns the identity of an object."
+        },
     }
 
-    if command:
-        if command in info:
-            sys.stdout.write(f"\n{command} Command Help:\n")
-            sys.stdout.write(f"   Example: {info[command]['example']}\n")
-            sys.stdout.write(f"   Description: {info[command]['description']}\n\n")
+    if func:
+        if func in info:
+            sys.stdout.write(f"{func} Function Help:\n")
+            sys.stdout.write(f"   Example: {info[func]['example']}\n")
+            sys.stdout.write(f"   Description: {info[func]['description']}\n\n")
         else:
-            sys.stdout.write(f"Command '{command}' not found. Try another or check available commands.\n")
+            sys.stdout.write(f"Function '{func}' not found. Try another or check available functions.\n")
         return
 
     version = config.get("version", "version unknown")
@@ -136,7 +236,7 @@ def help(config=None, command=None):
 Welcome to Lucia-{version}!
 
 If you're new to Lucia, start with the tutorial:
-https://github.com/SirPigari/lucia/tree/main/env/Docs/tutorial.md
+https://github.com/SirPigari/lucia/tree/main/env/Docs/introduction.md
 
 - Need help? Enter 'help("{{module or function name}}")' (without the '{{}}') to get the information about module or function.
 - Want to see available modules or keywords? Use 'modules()' or 'keywords()'.
