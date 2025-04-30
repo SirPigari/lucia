@@ -267,6 +267,9 @@ public static final fun testRecursive(n: int) -> int:
 end
 
 public static final fun testAll() -> int:
+    import os
+    import config
+    os.title(f"Lucia Test Suite - {config.get('version')}")
     // tests many features of the language
     #alias function -> fun
     function testFunction() -> int: return 0 end

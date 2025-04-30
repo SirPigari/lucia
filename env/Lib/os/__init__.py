@@ -3,3 +3,6 @@ def start(cmd):
 
 def getcwd():
     return os.getcwd()
+
+def title(title):
+    os.system(f"title {title}")

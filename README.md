@@ -1,4 +1,4 @@
-# Lucia 1.2.1
+# Lucia 1.3
 
 Lucia is a simple, lightweight, and fast programming language made in python.
 
@@ -25,6 +25,22 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
 
 
 ## Changelog:
+### 1.3.0
+- Added `f-strings`
+- Added `code blocks`, see [here](env/Docs/language-syntax.md#code-blocks)
+- Fixed `help` function
+- Minor changes to some error messages
+- Added C library (system lib, cannot be imported)
+- Updated `test` library for more tests
+- Included TCC in [`env/bin/tcc/`](env/bin/tcc)
+- Added more options to installer
+- Added `setprec` built-in function to set the precision of floats
+- Added `getprec` built-in function to get the precision of floats
+- Fixed minor bugs and issues
+- Added minor updates, I don't remember them myself
+- Modified `lexer.py` to include `WHITESPACE` token and then be removed in `pparser.py`
+- Variables now cannot be named one of these: ASM, C, PY
+- Added support for single-quote strings (`'`)
 ### 1.2.1
 - Changed the lucia logo, new logo: ![Lucia Logo](env/assets/lucia_logo_small.png)
 - Fixed typos
