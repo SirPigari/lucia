@@ -10,6 +10,9 @@ Content
   - [3\. Run the Program](#3-run-the-program)
 - [Variables & Data Types](#variables--data-types)
   - [Supported Data Types:](#supported-data-types)
+  - [F-Strings](#f-strings)
+    - [Basic Usage](#basic-usage)
+    - [Including Expressions](#including-expressions)
   - [Operators](#operators)
     - [Arithmetic Operators](#arithmetic-operators)
     - [Comparison Operators](#comparison-operators)
@@ -64,6 +67,13 @@ Content
     - [1\. #alias](#1-alias)
     - [2\. #del](#2-del)
     - [3\. #config](#3-config)
+- [Code Blocks](#code-blocks)
+  - [Syntax](#syntax)
+    - [C Example](#c-example)
+    - [ASM Example](#asm-example)
+    - [Python Example](#python-example)
+  - [Exporting Variables from C Blocks](#exporting-variables-from-c-blocks)
+  - [Export Functions](#export-functions)
 - [Conclusion](#conclusion)
 
 
@@ -126,6 +136,30 @@ person: map = {"name": "Lucia", "age": 20}  // Map
 *   **any**: A type that can hold any value (e.g., can be a string, number, list, etc.).
 *   **list**: Ordered collection of values (e.g., `[1, 2, 3]`).
 *   **map**: Key-value pairs (e.g., `{"name": "Lucia", "age": 25}`).
+
+## F-Strings
+Lucia supports f-strings for string interpolation, allowing you to embed variables or expressions directly within strings using curly braces `{}`.
+
+### Basic Usage
+```lucia
+name: str = "Lucia"
+version: str = "1.3"
+greeting: str = f"Hello, {name}! Welcome to Lucia version {version}."
+print(greeting)
+// Output: Hello, Lucia! Welcome to Lucia version 1.2.1.
+
+```
+
+### Including Expressions
+You can also include expressions inside f-strings:
+
+```lucia
+x: int = 5
+y: int = 10
+result: str = f"The sum of {x} and {y} is {x + y}."
+print(result)
+// Output: The sum of 5 and 10 is 15.
+```
 
 Operators
 ---------
@@ -678,6 +712,100 @@ It's the same as using the [`config.json`](../config.json) file. (See [Config gu
 
 You can use predefs to modify the behavior of built-in tokens and tailor the language to your specific needs before the interpreter executes your code.
 
+# Code Blocks
+
+Lucia supports **code blocks**, which allow you to execute code written in other languages directly within Lucia scripts. Supported languages include:
+
+- **C**
+- **ASM**
+- **Python**
+
+> **Configuration Requirement**  
+> Code blocks require the `execute_code_blocks` option to be set to `true` in your [`config.json`](../config.json) file:
+
+```json
+{
+  ...
+  "execute_code_blocks": {
+    "C": true,
+    "ASM": true,
+    "PY": true
+  },
+  ...
+}
+```
+
+---
+
+## Syntax
+
+Code blocks are written using a language prefix followed by an `end` keyword to mark the end of the block.
+
+### C Example
+
+```lucia
+C:
+    #include <stdio.h>
+    int main() {
+        printf("Hello, World!");
+        return 0;
+    }
+end
+```
+
+### ASM Example
+
+```lucia
+ASM:
+    mov eax, 1
+    mov ebx, 0
+    int 0x80
+end
+```
+
+### Python Example
+
+```lucia
+PY:
+    print("Hello, World!")
+end
+```
+
+---
+
+## Exporting Variables from C Blocks
+
+To retrieve values from C code, use the **export functions** provided by the [`export.h`](../Lib/C/include/export.h) library. This library is automatically included when executing C code blocks.
+
+### Example: Exporting an Integer
+
+```lucia
+C:
+    #include <stdio.h>
+    int main() {
+        int a = 10;
+        export_int("a", a);
+        export_flush();
+        return 0;
+    }
+end
+
+print(a)  // Output: 10
+```
+
+### Export Functions
+
+| Function                                  | Description                          |
+|-------------------------------------------|--------------------------------------|
+| `export_int(name: str, value: int)`       | Export an integer variable.          |
+| `export_float(name: str, value: float)`   | Export a float variable.             |
+| `export_double(name: str, value: double)` | Export a double variable.            |
+| `export_str(name: str, value: str)`       | Export a string variable.            |
+| `export_bool(name: str, value: bool)`     | Export a boolean variable.           |
+| `export_list(...)`                        | Export a list.                       |
+| `export_map(...)`                         | Export a map.                        |
+| `export_flush()`                          | Save exports to `exports.json`.      |
+| `export_clear()`                          | Clear all previously exported data.  |
 
 # Conclusion
 Lucia is a straightforward language designed for ease of use and flexibility. You’ve covered essential topics like variable declaration, control flow, functions, error handling, and objects. The syntax promotes clarity, and the use of blocks and indentation improves code organization.

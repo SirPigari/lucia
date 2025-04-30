@@ -49,7 +49,7 @@ DATA_PATH = os.path.abspath(".").replace("\\", "/")
 FILE = os.path.abspath("lucia.py").replace("\\", "/")
 FILE2 = os.path.abspath("installer.py").replace("\\", "/")
 EXE_PATH = os.path.join(BIN_PATH, "lucia.exe").replace("\\", "/")
-VERSION = "1.2.1"
+VERSION = "1.3"
 
 kill_process("lucia.exe")
 
@@ -94,6 +94,11 @@ config_to_place = {
     "warnings": True,
     "use_predefs": True,
     "print_comments": False,
+    "execute_code_blocks": {
+        "C": True,
+        "ASM": True,
+        "PY": True
+    },
     "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
     "home_dir": ENV_PATH,
     "recursion_limit": 9999,
@@ -113,6 +118,21 @@ config_to_place = {
 with open(CONFIG_PATH, "w") as file:
     json.dump(config_to_place, file, indent=2)
 
+RUN_FILE_PATH = os.path.abspath("env/bin/tcc/run.txt").replace("\\", "/")
+OG_RUN_FILE = ""
+with open(RUN_FILE_PATH, "r", encoding="utf-8") as run_file:
+    try:
+        OG_RUN_FILE = run_file.read()
+    except Exception as e:
+        print(f"Error reading run file: {e}")
+        exit(-1)
+with open(RUN_FILE_PATH, "w", encoding="utf-8") as run_file:
+    try:
+        run_file.write("{tcc_path} -run {source_path}")
+    except Exception as e:
+        print(f"Error writing run file: {e}")
+        exit(-1)
+
 print("Building installer...")
 installer_command = [f"{NSIS_PATH}\\makensis.exe", NSI_INSTALLER_PATH]
 
@@ -127,6 +147,13 @@ with open(CONFIG_PATH, "w", encoding="utf-8") as config_file:
         json.dump(OG_CONFIG, config_file, indent=2)
     except Exception as e:
         print(f"Error writing config file: {e}")
+        exit(-1)
+
+with open(RUN_FILE_PATH, "w", encoding="utf-8") as run_file:
+    try:
+        run_file.write(OG_RUN_FILE)
+    except Exception as e:
+        print(f"Error writing run file: {e}")
         exit(-1)
 
 os.chdir(DATA_PATH)

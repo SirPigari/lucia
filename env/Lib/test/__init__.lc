@@ -26,6 +26,74 @@ private static final fun youCantCallMeLol() -> int: print("you cant call me lol"
 
 public static final fun youCanCallMe() -> int: print("you can call me") return 0 end
 
+public static final fun testCBlock() -> int:
+    C:
+        #include <stdio.h>
+        int main() {
+            printf("Hello from C\n");
+            return 0;
+        }
+    end
+
+    hello_string: str = "Hello from C"
+
+    C:
+        #include <stdio.h>
+        int main() {
+            printf("%s\n", ${hello_string});
+            return 0;
+        }
+    end
+
+    C:
+        #include <stdio.h>
+        #include <stdbool.h>
+
+        int main() {
+            int i = 0;
+            char *str = "Hello from C";
+            float f = 3.14;
+            bool b = true;
+
+            export_int("i", i);
+            export_string("str", str);
+            export_float("f", f);
+            export_bool("b", b);
+            export_flush();
+
+            return 0;
+        }
+    end
+
+    print(i)
+    print(str)
+    print(f)
+    print(b)
+
+    return 0
+end
+
+public static final fun testASMBlock() -> int:
+    ASM:
+        mov eax, 1
+        mov ebx, 2
+        add eax, ebx
+        ret
+    end
+
+    return 0
+end
+
+public static final fun testPYBlock() -> int:
+    PY:
+        import math
+        print(math.sqrt(4))
+        print(math.pi)
+    end
+
+    return 0
+end
+
 public static final fun testIndex() -> void:
     l: list = [1, 2, 3]
     m: map = {"a": 1, "b": 2}
@@ -212,12 +280,18 @@ public static final fun testAll() -> int:
     end catch (e):
         print(e)
     end
+
     print(testOperators())
     print(testLibs())
     print(testFunctionCalls())
     print(testFunction())
     print(testIndex())
     print(testFString())
+
+    print(testCBlock())
+    print(testASMBlock())
+    print(testPYBlock())
+
     testImports()
     forget i
     i: any = "test"

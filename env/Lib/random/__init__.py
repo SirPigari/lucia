@@ -5,13 +5,14 @@ def choice(seq):
     return random.choice(seq)
 
 def shuffle(seq):
-    return random.shuffle(seq)
+    random.shuffle(seq)
+    return seq
 
 def seed(a=None, version=2):
     random.seed(a, version)
     return a
 
-def bool(chance=0.5):
+def randbool(chance=0.5):
     return Boolean(random.random() < chance)
 
 def getstate():
@@ -24,7 +25,7 @@ def getrandbits(k):
     return random.getrandbits(k)
 
 def randrange(start, stop=None, step=1):
-    return random.randrange(start, stop, step)
+    return random.randrange(int(start), int(stop), int(step))
 
 def uniform(a, b):
     return random.uniform(a, b)

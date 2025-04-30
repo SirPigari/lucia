@@ -8,7 +8,7 @@ import warnings
 import platform
 
 WORKING_DIR = os.path.dirname(__file__)
-VERSION = "1.2.1"
+VERSION = "1.3"
 CALL_PATH = os.getcwd()
 
 if hasattr(sys, 'frozen'):
@@ -143,6 +143,11 @@ def activate():
         "warnings": True,
         "use_predefs": True,
         "print_comments": False,
+        "execute_code_blocks": {
+            "C": True,
+            "ASM": True,
+            "PY": True
+        },
         "lucia_file_extensions": [".lucia", ".luc", ".lc", ".l"],
         "home_dir": ENV_PATH,
         "recursion_limit": 9999,

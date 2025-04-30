@@ -19,6 +19,9 @@ class LuciaException(Exception):
 class KeyError(LuciaException):
     pass
 
+class CRuntimeError(LuciaException):
+    pass
+
 class LuciaWarning(Warning):
     @property
     def __type__(self):
@@ -32,6 +35,12 @@ class ListPatternRecognitionWarning(LuciaWarning):
     pass
 
 class RecursionLimitWarning(LuciaWarning):
+    pass
+
+class CCodeDisabledWarning(LuciaWarning):
+    pass
+
+class TCCWarning(LuciaWarning):
     pass
 
 

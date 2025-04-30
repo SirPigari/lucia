@@ -8,6 +8,7 @@ files = [
     "env/build.py",
     "installer/LuciaInstaller.nsi",
     "README.md",
+    "env/Docs/language-syntax.md",
     "lucia.py"
 ]
 

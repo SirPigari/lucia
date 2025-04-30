@@ -1,3 +1,5 @@
+import env.Lib.Builtins.variables as b_variables
+
 def get_type_default(type_):
     if type_ == "int":
         return {"type": "NUMBER", "value": 0}
@@ -25,9 +27,17 @@ class Parser:
         self.statements = []
         self.aliases = {}
         self.config = config
+        self.include_whitespace = False
 
     @property
     def token(self):
+        if self.pos >= len(self.tokens):
+            return (None, None)
+        if self.include_whitespace:
+            token = self.apply_aliases(self.tokens[self.pos])
+            return token
+        while self.pos < len(self.tokens) and self.tokens[self.pos][0] == 'WHITESPACE':
+            self.pos += 1
         if self.pos >= len(self.tokens):
             return (None, None)
         token = self.apply_aliases(self.tokens[self.pos])
@@ -44,7 +54,6 @@ class Parser:
 
     def next(self):
         self.pos += 1
-        # print(self.token)
         return self.token
 
     def check_token(self):
@@ -52,9 +61,14 @@ class Parser:
             raise SyntaxError("Unexpected end of input")
 
     def get_next(self):
-        if self.pos + 1 >= len(self.tokens):
+        offset = 1
+        if self.pos + offset >= len(self.tokens):
             return None
-        return self.apply_aliases(self.tokens[self.pos + 1])
+        while self.pos + offset < len(self.tokens) and self.tokens[self.pos + offset][0] == 'WHITESPACE' and (not self.include_whitespace):
+            offset += 1
+        if self.pos + offset >= len(self.tokens):
+            return (None, None)
+        return self.apply_aliases(self.tokens[self.pos + offset])
 
     def parse(self):
         while self.pos < len(self.tokens):
@@ -216,6 +230,60 @@ class Parser:
 
         if self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next() == ('SEPARATOR', '.'):
             return self.parse_property()
+
+        if self.token == ('IDENTIFIER', 'C') and self.get_next() and self.get_next()[0] and self.get_next() == ('SEPARATOR', ':'):
+            self.next()
+            self.check_for('SEPARATOR', ':')
+            self.next()
+            body = ""
+            self.include_whitespace = True
+            while self.token and not (self.token == ('IDENTIFIER', 'end')):
+                body += self.token[1]
+                self.next()
+            self.include_whitespace = False
+            self.check_for('IDENTIFIER', 'end')
+            self.next()
+            return {
+                "type": "CODEBLOCK",
+                "language": "C",
+                "code": body
+            }
+
+        if self.token == ('IDENTIFIER', 'ASM') and self.get_next() and self.get_next()[0] and self.get_next() == ('SEPARATOR', ':'):
+            self.next()
+            self.check_for('SEPARATOR', ':')
+            self.next()
+            body = ""
+            self.include_whitespace = True
+            while self.token and not (self.token == ('IDENTIFIER', 'end')):
+                body += str(self.token[1])
+                self.next()
+            self.include_whitespace = False
+            self.check_for('IDENTIFIER', 'end')
+            self.next()
+            return {
+                "type": "CODEBLOCK",
+                "language": "ASM",
+                "code": body
+            }
+
+        if self.token == ('IDENTIFIER', 'PY') and self.get_next() and self.get_next()[0] and self.get_next() == ('SEPARATOR', ':'):
+            self.next()
+            self.check_for('SEPARATOR', ':')
+            self.next()
+            body = ""
+            self.include_whitespace = True
+            while self.token and not (self.token == ('IDENTIFIER', 'end')):
+                body += self.token[1]
+                self.next()
+            self.include_whitespace = False
+            self.check_for('IDENTIFIER', 'end')
+            self.next()
+            return {
+                "type": "CODEBLOCK",
+                "language": "PY",
+                "code": body
+            }
 
         # Check for variable declaration or assignment
         elif self.token[0] == 'IDENTIFIER' and self.get_next() and self.get_next()[0] == 'SEPARATOR' and \
@@ -873,20 +941,25 @@ class Parser:
         quote_type = self.token[1][1:]
         self.next()
         fstring = []
+        self.include_whitespace = True
         while self.token != ('FSTRINGEND', quote_type):
             if self.token == (None, None):
                 raise SyntaxError("Unexpected end of input in f-string")
             if self.token == ('SEPARATOR', '{'):
+                self.include_whitespace = False
                 self.next()
                 value = self.parse_expression()
                 if self.token == ('SEPARATOR', '}'):
+                    self.include_whitespace = True
                     self.next()
                 else:
-                    raise SyntaxError("Expected '}' in f-string")
+                    raise SyntaxError(f"Expected '}}' in f-string, got '{self.token}'")
                 fstring.append(value)
+                self.include_whitespace = True
                 continue
             fstring.append({"type": "STRING", "value": self.token[1]})
             self.next()
+        self.include_whitespace = False
         self.check_for('FSTRINGEND')
         self.next()
         return {

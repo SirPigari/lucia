@@ -1,0 +1,1 @@
+{tcc_path} -run -O2 -Wall {source_path}

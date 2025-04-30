@@ -222,11 +222,14 @@ def help(config=None, func=None):
         },
     }
 
+    if callable(func):
+        func = getattr(func, "name", repr(func))
+
     if func:
         if func in info:
-            sys.stdout.write(f"{func} Function Help:\n")
+            sys.stdout.write(f"'{func}' Function Help:\n")
             sys.stdout.write(f"   Example: {info[func]['example']}\n")
-            sys.stdout.write(f"   Description: {info[func]['description']}\n\n")
+            sys.stdout.write(f"   Description: {info[func]['description']}\n")
         else:
             sys.stdout.write(f"Function '{func}' not found. Try another or check available functions.\n")
         return

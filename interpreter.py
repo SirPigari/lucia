@@ -18,6 +18,7 @@ import hashlib
 import json
 import decimal
 import time
+import subprocess
 
 false = b_classes.Boolean(False)
 true = b_classes.Boolean(True)
@@ -298,6 +299,7 @@ class Interpreter:
             "ASSIGNMENT_INDEX": self.handle_assignment_index,
             "INDEX": self.handle_index,
             "INDEX_OPERATION": self.handle_index_operation,
+            "CODEBLOCK": self.handle_code_block,
         }
 
         if not isinstance(statement, dict):
@@ -337,9 +339,8 @@ class Interpreter:
                 raise NameError(f"Name '{statement["name"]}' is not defined.")
         obj = self.variables[statement["name"]]
         if isinstance(obj, b_classes.Function):
-            pos_args = [self.evaluate(pos_arg) for pos_arg in statement["pos_arguments"]]
-            named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
-                          statement["named_arguments"]}
+            pos_args = statement["pos_arguments"]
+            named_args = statement["named_arguments"]
             return self.call_function(obj, pos_args, named_args)
         elif isinstance(obj, b_classes.Object):
             pos_args = [self.evaluate(pos_arg) for pos_arg in statement["pos_arguments"]]
@@ -348,9 +349,8 @@ class Interpreter:
             return self.call_object_declaration(obj, pos_args, named_args)
         elif isinstance(obj, b_classes.Variable):
             if isinstance(obj.value, b_classes.Function):
-                pos_args = [self.evaluate(pos_arg) for pos_arg in statement["pos_arguments"]]
-                named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
-                              statement["named_arguments"]}
+                pos_args = statement["pos_arguments"]
+                named_args = statement["named_arguments"]
                 return self.call_function(obj.value, pos_args, named_args, custom_name=statement["name"])
             elif isinstance(obj.value, b_classes.Object):
                 pos_args = [self.evaluate(pos_arg) for pos_arg in statement["pos_arguments"]]
@@ -373,19 +373,26 @@ class Interpreter:
             self.stack.append({"name": name, "variables": self.variables, "return_value": self.return_value,
                                "is_returning": self.is_returning})
             self.check_stack()
+            pos_args = [self.evaluate(pos_arg) for pos_arg in pos_args]
+            named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
+                          named_args}
             ret = function.function(*pos_args, **named_args)
             self.stack.pop()
             if ret is not None:
                 self.debug_log(f"<Function {name} returned {repr(ret)}>")
                 if self.repl:
-                    if not (self.stack and self.stack[-1]["name"] == "print"):
-                        print(ret)
+                    if not self.stack and ret:
+                        print(b_classes.Literal(ret))
             return b_classes.Literal(ret)
 
         body = function.body
         parameters = function.parameters
         return_type = self.evaluate(function.return_type)
         check_type(return_type)
+
+        pos_args = [self.evaluate(pos_arg) for pos_arg in pos_args]
+        named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
+                      named_args}
 
         total_args = len(pos_args) + len(named_args)
         required_params = [param for param in parameters if param['default_value'] is None]
@@ -418,11 +425,12 @@ class Interpreter:
             else:
                 raise TypeError(f"Missing required positional argument: '{param_name}'")
 
+
+        self.stack.append({"name": name, "variables": {**self.variables, **all_args}, "return_value": self.return_value,
+                           "is_returning": self.is_returning})
+        self.check_stack()
         i = Interpreter(self.config)
         i.variables = {**self.variables, **all_args, **locals_}  # Merge all arguments into the variables environment
-        self.stack.append({"name": name, "variables": {**self.variables, **all_args}, "return_value": i.return_value,
-                           "is_returning": i.is_returning})
-        self.check_stack()
         i.stack = self.stack
         i.interpret(body)
         check_type(get_type(i.return_value), return_type, i.return_value)
@@ -432,8 +440,8 @@ class Interpreter:
         self.stack.pop()
         if i.return_value is not None:
             if self.repl:
-                if not (self.stack and self.stack[-1]["name"] == "print"):
-                    print(i.return_value)
+                if not self.stack:
+                    print(b_classes.Literal(i.return_value))
         return b_classes.Literal(i.return_value)
 
     def handle_return(self, statement):
@@ -492,7 +500,7 @@ class Interpreter:
             else:
                 raise NameError(f"Name '{name}' is not defined.")
         if self.repl:
-            if not (self.stack and self.stack[-1]["name"] == "print"):
+            if not self.stack:
                 print(self.variables[name])
         return self.variables[name]
 
@@ -1054,10 +1062,11 @@ class Interpreter:
         if statement["property"]["type"] == "CALL":
             self.debug_log(f"<Property '{statement['object_name']}.{statement['property']['name']}' called>")
             name_ = statement["property"]["name"]
-            pos_args = [self.evaluate(pos_arg) for pos_arg in statement["property"]["pos_arguments"]]
-            named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
-                          statement["property"]["named_arguments"]}
             if hasattr(object_, name_):
+
+                pos_args = [self.evaluate(pos_arg) for pos_arg in statement["property"]["pos_arguments"]]
+                named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
+                              statement["property"]["named_arguments"]}
                 function = getattr(object_, name_)
                 if callable(function):
                     if isinstance(function, b_classes.Function):
@@ -1069,6 +1078,7 @@ class Interpreter:
                             return function(*pos_args, **named_args)
                     else:
                         self.debug_log(f"<Function '{statement['object_name']}.{name_}' called>")
+
                     self.stack.append({"name": f"'{statement['object_name']}.{name_}'", "variables": self.variables,
                                        "return_value": self.return_value,
                                        "is_returning": self.is_returning})
@@ -1077,11 +1087,14 @@ class Interpreter:
                     if not value is None:
                         self.debug_log(f"<Function '{statement['object_name']}.{name_}' returned {repr(value)}>")
                     if self.repl:
-                        if not (self.stack and self.stack[-1]["name"] == "print"):
-                            print(value)
+                        if not self.stack and value:
+                            print(b_classes.Literal(value))
                     return value
                 else:
                     raise TypeError(f"Object '{object_}' has no function '{name_}'.")
+            pos_args = [pos_arg for pos_arg in statement["property"]["pos_arguments"]]
+            named_args = {named_arg["name"]: named_arg["value"] for named_arg in
+                          statement["property"]["named_arguments"]}
             return self.call_object_function(object_, name_, pos_args, named_args, statement["object_name"])
         elif statement["property"]["type"] == "VARIABLE":
             self.debug_log(f"<Property '{statement['object_name']}.{statement['property']['name']}' accessed>")
@@ -1094,16 +1107,16 @@ class Interpreter:
             if hasattr(object_, statement["property"]["name"]):
                 ret = b_classes.Literal(getattr(object_, statement["property"]["name"], null))
                 if self.repl:
-                    if not (self.stack and self.stack[-1]["name"] == "print"):
-                        print(ret)
+                    if not self.stack and ret:
+                        print(b_classes.Literal(ret))
                 return ret
             if hasattr(object_, "_data") and statement["property"]["name"] in object_._data:
                 if not isinstance(object_, b_classes.Object):
                     raise TypeError(f"Object '{statement['object_name']}' is not supported.")
                 ret = object_._data.get(statement["property"]["name"], null)
                 if self.repl:
-                    if not (self.stack and self.stack[-1]["name"] == "print"):
-                        print(ret)
+                    if not self.stack and ret:
+                        print(b_classes.Literal(ret))
                 return b_classes.Literal(ret)
             values = dir(object_)
             if hasattr(object_, "_data"):
@@ -1149,6 +1162,9 @@ class Interpreter:
         name = f"'{function_name}'"
         if isinstance(function, b_classes.Function):
             if function.is_builtin:
+                pos_args = [self.evaluate(pos_arg) for pos_arg in pos_args]
+                named_args = {named_arg["name"]: self.evaluate(named_arg["value"]) for named_arg in
+                             named_args}
                 self.stack.append({"name": name, "variables": self.variables, "return_value": self.return_value,
                                    "is_returning": self.is_returning})
                 self.check_stack()
@@ -1377,3 +1393,238 @@ class Interpreter:
             self.variables[name] = b_exceptions.MakeException(name, b_exceptions.LuciaException)
         elif statement["exc_type"] == "Warning":
             self.variables[name] = b_exceptions.MakeWarning(name, b_exceptions.LuciaWarning)
+
+    def handle_code_block(self, statement):
+        language = statement["language"]
+        code = statement["code"]
+        if language == "C":
+            return self.handle_c_code(code)
+        elif language == "Python":
+            def replacer(match):
+                var_name = match.group(1)
+                if var_name in self.variables:
+                    val = self.variables[var_name].value
+                    if isinstance(val, str):
+                        return json.dumps(val)
+                    elif isinstance(val, bool):
+                        return "1" if val else "0"
+                    elif isinstance(val, int):
+                        return f"{val:d}"
+                    elif val is None:
+                        return "None"
+                    else:
+                        return repr(val)
+
+                return f"${{{var_name}}}"
+
+            code = re.sub(r"\$\{([^}]+)}", replacer, code)
+
+            if not self.config.get("execute_code_blocks", {}).get("PY", False):
+                self.warn(
+                    "Python code execution is disabled in the configuration. This may cause errors or unexpected behavior.",
+                    b_exceptions.CCodeDisabledWarning
+                )
+                return
+
+            exec(code, self.variables)
+        elif language == "ASM":
+            return self.handle_asm_code(code)
+
+    def handle_asm_code(self, code):
+        def replacer(match):
+            var_name = match.group(1)
+            if var_name in self.variables:
+                val = self.variables[var_name].value
+                if isinstance(val, str):
+                    return json.dumps(val)
+                elif isinstance(val, bool):
+                    return "1" if val else "0"
+                elif val is None:
+                    return "NULL"
+                else:
+                    return str(val)
+
+            return f"${{{var_name}}}"
+
+        def make_c_path(path):
+            return os.path.abspath(path).replace("\\", "/").replace(" ", "\\ ").replace("(", "\\(").replace(")", "\\)").replace("'", "\\'")
+
+        code = re.sub(r"\$\{([^}]+)}", replacer, code)
+
+        if not self.config.get("execute_code_blocks", {}).get("ASM", False):
+            self.warn(
+                "Assembly code execution is disabled in the configuration. This may cause errors or unexpected behavior.",
+                b_exceptions.CCodeDisabledWarning
+            )
+            return
+
+        export_file = os.path.abspath(f"{self.config['home_dir']}/Lib/C/export.json")
+
+        with open(export_file, "w") as f:
+            f.write("{}")
+
+        code = f"""
+            #include <stdio.h>
+            #include <stdlib.h>
+            #define EXPORT_FILE_PATH "{make_c_path(export_file)}"
+            #include "{make_c_path(os.path.abspath(f"{self.config['home_dir']}/Lib/C/include/export.h"))}"
+            
+            int main() {{
+                __asm__ ("{code}");
+                return 0;
+            }}
+            
+            """
+
+        tcc_path = os.path.abspath(f"{self.config['home_dir']}/bin/tcc/tcc.exe")
+        tcc_run_path = os.path.abspath(f"{self.config['home_dir']}/bin/tcc/run.txt")
+
+        temp_c_path = os.path.abspath(f"{self.config['home_dir']}/Lib/C/temp/temp_asm.c")
+
+        run_command = [tcc_path, "-run", temp_c_path]
+
+        if not os.path.exists(tcc_run_path):
+            self.warn(f"TCC run file not found at {tcc_run_path}. Using default run command.", b_exceptions.TCCWarning)
+        else:
+            with open(tcc_run_path, "r") as f:
+                run_command = f.read()
+            run_command = run_command.replace("{tcc_path}", tcc_path)
+            run_command = run_command.replace("{source_path}", temp_c_path)
+            run_command = run_command.split()
+
+        if not os.path.exists(tcc_path):
+            raise FileNotFoundError(f"TCC not found at {tcc_path}. Please check your configuration.")
+
+        with open(temp_c_path, "w") as f:
+            f.write(code + "\n")
+
+        self.debug_log(f"<Executing Assembly code using TCC: {' '.join(run_command)}>")
+
+        run_start_time = time.time()
+
+        try:
+            process = subprocess.Popen(run_command, stdin=None)
+
+            process.communicate()
+
+            run_end_time = time.time()
+            run_duration = run_end_time - run_start_time
+            self.debug_log(f"<Assembly code executed in {run_duration:.4f} seconds>")
+
+            if os.path.exists(export_file):
+                with open(export_file, "r") as f:
+                    exported_vars = json.loads(f.read())
+                    try:
+                        for k, v in exported_vars.items():
+                            v = b_classes.Literal(v)
+                            self.variables[k] = v
+                            self.debug_log(f"<Imported ASM variable: {k} = {v}>")
+                    except json.JSONDecodeError as e:
+                        raise b_exceptions.CRuntimeError(f"Failed to parse exported variable: {e}")
+
+        except Exception as e:
+            raise b_exceptions.CRuntimeError(f"Error executing C code: {e}")
+        finally:
+            if os.path.exists(temp_c_path):
+                os.remove(temp_c_path)
+            if os.path.exists(export_file):
+                os.remove(export_file)
+
+    def handle_c_code(self, code):
+        def replacer(match):
+            var_name = match.group(1)
+            if var_name in self.variables:
+                val = self.variables[var_name].value
+
+                if isinstance(val, str):
+                    return json.dumps(val)
+                elif isinstance(val, bool):
+                    return "1" if val else "0"
+                elif isinstance(val, int):
+                    return f"{val:d}"
+                elif val is None:
+                    return "NULL"
+                else:
+                    return str(val)
+
+            return f"${{{var_name}}}"
+
+        def make_c_path(path):
+            return os.path.abspath(path).replace("\\", "/").replace(" ", "\\ ").replace("(", "\\(").replace(")", "\\)").replace("'", "\\'")
+
+        code = re.sub(r"\$\{([^}]+)}", replacer, code)
+
+        if not self.config.get("execute_code_blocks", {}).get("C", False):
+            self.warn(
+                "C code execution is disabled in the configuration. This may cause errors or unexpected behavior.",
+                b_exceptions.CCodeDisabledWarning
+            )
+            return
+
+        tcc_path = os.path.abspath(f"{self.config['home_dir']}/bin/tcc/tcc.exe")
+        tcc_run_path = os.path.abspath(f"{self.config['home_dir']}/bin/tcc/run.txt")
+
+        export_file = os.path.abspath(f"{self.config['home_dir']}/Lib/C/export.json")
+
+        with open(export_file, "w") as f:
+            f.write("{}")
+
+
+        code = f"""
+        #define EXPORT_FILE_PATH "{make_c_path(export_file)}"
+        #include "{make_c_path(os.path.abspath(f"{self.config['home_dir']}/Lib/C/include/export.h"))}"
+        // Compiled with TCC, Using LuciaAPL
+        
+        """ + code
+
+        temp_c_path = os.path.abspath(f"{self.config['home_dir']}/Lib/C/temp/temp.c")
+
+        run_command = [tcc_path, "-run", temp_c_path]
+
+
+        if not os.path.exists(tcc_run_path):
+            self.warn(f"TCC run file not found at {tcc_run_path}. Using default run command.", b_exceptions.TCCWarning)
+        else:
+            with open(tcc_run_path, "r") as f:
+                run_command = f.read()
+            run_command = run_command.replace("{tcc_path}", tcc_path)
+            run_command = run_command.replace("{source_path}", temp_c_path)
+            run_command = run_command.split()
+
+        if not os.path.exists(tcc_path):
+            raise FileNotFoundError(f"TCC not found at {tcc_path}. Please check your configuration.")
+
+        with open(temp_c_path, "w") as f:
+            f.write(code + "\n")
+
+        self.debug_log(f"<Executing C code using TCC: {' '.join(run_command)}>")
+
+        run_start_time = time.time()
+
+        try:
+            process = subprocess.Popen(run_command, stdin=None)
+
+            process.communicate()
+
+            run_end_time = time.time()
+            run_duration = run_end_time - run_start_time
+            self.debug_log(f"<C code executed in {run_duration:.4f} seconds>")
+
+            if os.path.exists(export_file):
+                with open(export_file, "r") as f:
+                    exported_vars = json.loads(f.read())
+                    try:
+                        for k, v in exported_vars.items():
+                            v = b_classes.Literal(v)
+                            self.variables[k] = v
+                            self.debug_log(f"<Imported C variable: {k} = {v}>")
+                    except json.JSONDecodeError as e:
+                        raise b_exceptions.CRuntimeError(f"Failed to parse exported variable: {e}")
+
+        except Exception as e:
+            raise b_exceptions.CRuntimeError(f"Error executing C code: {e}")
+        finally:
+            if os.path.exists(temp_c_path):
+                os.remove(temp_c_path)
+            if os.path.exists(export_file):
+                os.remove(export_file)
