@@ -251,8 +251,21 @@ Happy coding!
 
 def modules(config=None):
     modules_list = os.listdir(f"{config.get("home_dir", ".")}\\Lib")
+    valid_modules = set()
+    for m in modules_list:
+        if m in ["__pycache__", "site-packages", "venv", "Builtins"]:
+            continue
+        module_files = os.listdir(f"{config.get('home_dir', '.')}\\Lib\\{m}")
+        for f in module_files:
+            if os.path.isdir(f"{config.get('home_dir', '.')}\\Lib\\{m}\\{f}"):
+                continue
+            if f".{f.rsplit('.', 1)[1]}" in config["lucia_file_extensions"]:
+                valid_modules.add(m)
+            elif f.rsplit(".", 1)[1] == "py":
+                valid_modules.add(m)
     sys.stdout.write("Available modules:\n")
-    for module in modules_list:
+    valid_modules = sorted(valid_modules)
+    for module in valid_modules:
         sys.stdout.write(f" - {module}\n")
     sys.stdout.write("\n")
 

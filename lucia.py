@@ -90,7 +90,7 @@ def input_exec():
             debug_log(f"Statements generated: []")
         return
     if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
-        debug_log(f"Tokens generated: {tokens}")
+        debug_log(f"Tokens generated: {[token for token in tokens if token[0] != 'WHITESPACE']}")
     parser = pparser.Parser(tokens, config)
     parser.parse()
     if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
@@ -109,7 +109,7 @@ def execute_file(file_path, exit=True):
             code = file.read()
         tokens = lexer.lexer(code, include_comments=config.get('print_comments', False))
         if config.get('debug_mode', 'normal') == 'full' or config.get('debug_mode', 'normal') == 'minimal':
-            debug_log(f"Tokens generated: {tokens}")
+            debug_log(f"Tokens generated: {[token for token in tokens if token[0] != 'WHITESPACE']}")
             if not tokens:
                 debug_log(f"Statements generated: []")
                 return

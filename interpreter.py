@@ -252,7 +252,11 @@ class Interpreter:
     def interpret(self, statements):
         for statement in statements:
             statement: dict = dict(statement)
-            self.evaluate(statement)
+            value = self.evaluate(statement)
+            if self.repl:
+                value = b_classes.Literal(value)
+                if not (isinstance(value, b_classes.Boolean) and value.literal is None):
+                    print(value)
             if self.is_returning:
                 return self.return_value
 
@@ -380,9 +384,6 @@ class Interpreter:
             self.stack.pop()
             if ret is not None:
                 self.debug_log(f"<Function {name} returned {repr(ret)}>")
-                if self.repl:
-                    if not self.stack and ret:
-                        print(b_classes.Literal(ret))
             return b_classes.Literal(ret)
 
         body = function.body
@@ -438,10 +439,6 @@ class Interpreter:
         self.return_value = self.stack[-1]["return_value"]
         self.is_returning = self.stack[-1]["is_returning"]
         self.stack.pop()
-        if i.return_value is not None:
-            if self.repl:
-                if not self.stack:
-                    print(b_classes.Literal(i.return_value))
         return b_classes.Literal(i.return_value)
 
     def handle_return(self, statement):
@@ -499,9 +496,6 @@ class Interpreter:
                 raise NameError(f"Name '{name}' is not defined. Did you mean: '{closest_match}'?")
             else:
                 raise NameError(f"Name '{name}' is not defined.")
-        if self.repl:
-            if not self.stack:
-                print(self.variables[name])
         return self.variables[name]
 
     def handle_assignment(self, statement):
@@ -791,7 +785,8 @@ class Interpreter:
         as_name = statement["as"]
         from_ = None if (statement["from"] is None) else self.evaluate(statement["from"])
         module = self.import_module(module_name, as_name, from_)
-        self.debug_log(f"<Module '{module_name}' imported from '{os.path.abspath(from_)}' as '{as_name}'>")
+        if module:
+            self.debug_log(f"<Module '{module_name}' imported from '{os.path.abspath(from_)}' as '{as_name}'>")
         return module
 
     def import_module(self, module_name, as_name=None, from_=None):
@@ -825,6 +820,21 @@ class Interpreter:
             if "__init__.py" in module_files:
                 module_files.remove("__init__.py")
                 module_files.insert(0, "__init__.py")
+
+            is_valid = False
+
+            for f in module_files:
+                if os.path.isdir(f"{module_path}/{f}"):
+                    continue
+                if f".{f.rsplit('.', 1)[1]}" in self.config["lucia_file_extensions"]:
+                    is_valid = True
+                    break
+                elif f.rsplit(".", 1)[1] == "py":
+                    is_valid = True
+                    break
+
+            if not is_valid:
+                raise ImportError(f"Module '{module_name}' is not a valid Lucia module.")
 
             for module in module_files:
                 if module in ("__pycache__"):
@@ -1086,9 +1096,6 @@ class Interpreter:
                     self.stack.pop()
                     if not value is None:
                         self.debug_log(f"<Function '{statement['object_name']}.{name_}' returned {repr(value)}>")
-                    if self.repl:
-                        if not self.stack and value:
-                            print(b_classes.Literal(value))
                     return value
                 else:
                     raise TypeError(f"Object '{object_}' has no function '{name_}'.")
@@ -1106,17 +1113,11 @@ class Interpreter:
                 object_ = object_.function
             if hasattr(object_, statement["property"]["name"]):
                 ret = b_classes.Literal(getattr(object_, statement["property"]["name"], null))
-                if self.repl:
-                    if not self.stack and ret:
-                        print(b_classes.Literal(ret))
                 return ret
             if hasattr(object_, "_data") and statement["property"]["name"] in object_._data:
                 if not isinstance(object_, b_classes.Object):
                     raise TypeError(f"Object '{statement['object_name']}' is not supported.")
                 ret = object_._data.get(statement["property"]["name"], null)
-                if self.repl:
-                    if not self.stack and ret:
-                        print(b_classes.Literal(ret))
                 return b_classes.Literal(ret)
             values = dir(object_)
             if hasattr(object_, "_data"):
@@ -1569,6 +1570,15 @@ class Interpreter:
         with open(export_file, "w") as f:
             f.write("{}")
 
+        if not (re.search(r'\b(?:int|void)\s+main\s*\([^)]*\)\s*{', code) is not None):
+            code = f"""
+            #include <stdio.h>
+            
+            int main() {{
+                {code}
+                return 0;
+            }}
+            """
 
         code = f"""
         #define EXPORT_FILE_PATH "{make_c_path(export_file)}"

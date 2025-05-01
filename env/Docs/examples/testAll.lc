@@ -1,8 +1,11 @@
+import os
+
 #config debug = true
 
 testSuiteVersion = "0.0.2b"
 
 print(f"LuciaAPL {numver()} Test Suite ({testSuiteVersion})")
+os.title(f"LuciaAPL {numver()} Test Suite ({testSuiteVersion})")
 
 import test
 

@@ -1,9 +1,9 @@
 {
   "moded": false,
-  "debug": false,
+  "debug": true,
   "debug_mode": "full",
   "supports_color": true,
-  "use_lucia_traceback": true,
+  "use_lucia_traceback": false,
   "warnings": true,
   "use_predefs": true,
   "print_comments": false,
