@@ -722,18 +722,17 @@ Lucia supports **code blocks**, which allow you to execute code written in other
 
 > **Configuration Requirement**  
 > Code blocks require the `execute_code_blocks` option to be set to `true` in your [`config.json`](../config.json) file:
-
-```json
-{
-  ...
-  "execute_code_blocks": {
-    "C": true,
-    "ASM": true,
-    "PY": true
-  },
-  ...
-}
-```
+>  ```
+>  {
+>    ...
+>    "execute_code_blocks": {
+>      "C": true,
+>      "ASM": true,
+>      "PY": true
+>    },
+>    ...
+>  }
+> ```
 
 ---
 
