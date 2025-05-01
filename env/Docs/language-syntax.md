@@ -794,17 +794,21 @@ print(a)  // Output: 10
 
 ### Export Functions
 
-| Function                                  | Description                          |
-|-------------------------------------------|--------------------------------------|
-| `export_int(name: str, value: int)`       | Export an integer variable.          |
-| `export_float(name: str, value: float)`   | Export a float variable.             |
-| `export_double(name: str, value: double)` | Export a double variable.            |
-| `export_str(name: str, value: str)`       | Export a string variable.            |
-| `export_bool(name: str, value: bool)`     | Export a boolean variable.           |
-| `export_list(...)`                        | Export a list.                       |
-| `export_map(...)`                         | Export a map.                        |
-| `export_flush()`                          | Save exports to `exports.json`.      |
-| `export_clear()`                          | Clear all previously exported data.  |
+| Function                                  | Description                         |
+|-------------------------------------------|-------------------------------------|
+| `export_int(name: str, value: int)`       | Export an integer variable.         |
+| `export_float(name: str, value: float)`   | Export a float variable.            |
+| `export_double(name: str, value: double)` | Export a double variable.           |
+| `export_str(name: str, value: str)`       | Export a string variable.           |
+| `export_bool(name: str, value: bool)`     | Export a boolean variable.          |
+| `export_list(...)`                        | Export a list.                      |
+| `export_map(...)`                         | Export a map.                       |
+| `export_flush()`                          | Save exports to `export.json`.      |
+| `export_clear()`                          | Clear all previously exported data. |
+
+
+-----------
+
 
 # Conclusion
 Lucia is a straightforward language designed for ease of use and flexibility. You’ve covered essential topics like variable declaration, control flow, functions, error handling, and objects. The syntax promotes clarity, and the use of blocks and indentation improves code organization.
