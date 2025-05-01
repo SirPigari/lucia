@@ -7,12 +7,14 @@ pi = Decimal(math.pi)
 tau = Decimal(math.tau)
 inf = Decimal(math.inf)
 nan = Decimal(math.nan)
+goldenRatio = Decimal((1 + 5 ** 0.5) / 2)
 
 E = e
 PI = pi
 TAU = tau
 INF = inf
 NAN = nan
+GOLDENRATIO = goldenRatio
 
 
 # Functions

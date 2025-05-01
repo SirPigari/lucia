@@ -1,12 +1,17 @@
+import math
+setprec(1000)
+
 public static final fun fib(n: int) -> int:
-	a = 0
-	b = 1
-	for (i in range(2, n + 1)):
-		temp = b
-		b = a + b
-		a = temp
-	end
-	return b
+    t1: float = (1 + math.sqrt(5))
+    t2: float = (1 - math.sqrt(5))
+    t1: float = t1 / 2
+    t2: float = t2 / 2
+    t3: float = math.sqrt(5)
+
+    t4: float = (t1 ^ n) - (t2 ^ n)
+    t5: float = t4 / t3
+
+    return int(t5)
 end
 
 print(fib(1476))

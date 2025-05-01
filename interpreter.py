@@ -112,12 +112,13 @@ def id_(obj):
     return id(value)
 
 
-def check_type(type_, expected=None, return_value=None):
+def check_type(type_, expected=None, return_value=None, error=True):
     valid_types = b_variables.VALID_TYPES
 
     types_mapping = {
         "void": "null",
         "Decimal": "float",
+        "method": "function",
         b_classes.List: "list",
         b_classes.Map: "map",
         b_classes.Function: "function",
@@ -155,7 +156,10 @@ def check_type(type_, expected=None, return_value=None):
                 return True
 
         if type_ != expected:
-            raise TypeError(f"Expected type '{expected}', but got '{type_}'")
+            if error:
+                raise TypeError(f"Expected type '{expected}', but got '{type_}'")
+            else:
+                return False
 
         return True
 
@@ -195,6 +199,7 @@ class Interpreter:
             "setprec": b_classes.Function(is_builtin=True, function=setprec, name="setprec"),
             "getprec": b_classes.Function(is_builtin=True, function=lambda: decimal.getcontext().prec, name="getprec"),
             "id": b_classes.Function(is_builtin=True, function=id_, name="id"),
+            "expect": b_classes.Function(is_builtin=True, function=b_functions.expect, name="expect"),
         }
 
         self.variables.update({
@@ -327,9 +332,9 @@ class Interpreter:
                 if fun.modifiers["is_final"]:
                     raise PermissionError(f"Function '{name}' is final and cannot be re-declared.")
                 self.debug_log(f"<Function '{statement['name']}' re-declared.>")
+            # raise NameError(f"Function '{name}' is already declared.")
         else:
             self.debug_log(f"<Function '{statement['name']}' declared.>")
-            # raise NameError(f"Function '{name}' is already declared.")
         self.variables[name] = b_classes.Function(name, args, body, modifiers, return_type)
         return self.variables[name]
 
@@ -413,19 +418,40 @@ class Interpreter:
             param_name = parameter['name']
             param_type = parameter['variable_type']
             default_value = self.evaluate(parameter['default_value'])
+            value_type = get_type(pos_args[i]) if i < len(pos_args) else null
 
             if param_name in named_args:
-                if not check_type(get_type(named_args[param_name]), param_type):
+                value = named_args[param_name]
+                value_type = get_type(value)
+                if param_type == 'int' and value_type == 'float':
+                    value = int(value)
+                    value_type = 'int'
+                elif param_type == 'float' and value_type == 'int':
+                    value = float(value)
+                    value_type = 'float'
+                if not check_type(value_type, param_type, error=False):
                     raise TypeError(
-                        f"Expected type '{param_type}' for argument '{param_name}', but got '{self.get_type(named_args[param_name])}'")
-                all_args[param_name] = named_args[param_name]
+                        f"Expected type '{param_type}' for argument '{param_name}', but got '{value_type}'"
+                    )
+                all_args[param_name] = value
             elif i < len(pos_args):
-                all_args[param_name] = pos_args[i]
+                value = pos_args[i]
+                value_type = get_type(value)
+                if param_type == 'int' and value_type == 'float':
+                    value = int(value)
+                    value_type = 'int'
+                elif param_type == 'float' and value_type == 'int':
+                    value = float(value)
+                    value_type = 'float'
+                if not check_type(value_type, param_type, error=False):
+                    raise TypeError(
+                        f"Expected type '{param_type}' for positional argument '{param_name}', but got '{value_type}'"
+                    )
+                all_args[param_name] = value
             elif default_value is not None:
                 all_args[param_name] = default_value
             else:
                 raise TypeError(f"Missing required positional argument: '{param_name}'")
-
 
         self.stack.append({"name": name, "variables": {**self.variables, **all_args}, "return_value": self.return_value,
                            "is_returning": self.is_returning})

@@ -531,6 +531,17 @@ class Map(dict):
 	def __repr__(self):
 		return f"<map at {id(self)}>"
 
+	def flattenToList(self):
+		stack = [self]
+		flat_list = []
+		while stack:
+			item = stack.pop()
+			if isinstance(item, MutableMapping):
+				stack.extend(reversed(item.items()))
+			else:
+				flat_list.append(item)
+		return List(flat_list)
+
 	def flatten(self, parent_key='', separator='_'):
 		def f(dictionary, parent_key='', separator='_'):
 			items = []

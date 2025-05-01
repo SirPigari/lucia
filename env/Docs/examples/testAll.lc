@@ -2,7 +2,7 @@ import os
 
 #config debug = true
 
-testSuiteVersion = "0.0.2b"
+testSuiteVersion = "0.0.3b"
 
 print(f"LuciaAPL {numver()} Test Suite ({testSuiteVersion})")
 os.title(f"LuciaAPL {numver()} Test Suite ({testSuiteVersion})")

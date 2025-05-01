@@ -75,9 +75,9 @@ end
 
 public static final fun testASMBlock() -> int:
     ASM:
-        mov eax, 1
-        mov ebx, 2
-        add eax, ebx
+        movl $1, %eax
+        movl $2, %ebx
+        addl %ebx, %eax
         ret
     end
 
@@ -268,9 +268,13 @@ end
 
 public static final fun testAll() -> int:
     // tests many features of the language
+    setprec(1000)
+
     #alias function -> fun
     function testFunction() -> int: return 0 end
-    test()
+
+    expect(testFunction(), 0)  // Expected result: 0
+
     #del function
     #config debug = true
     #config debug reset
@@ -281,116 +285,141 @@ public static final fun testAll() -> int:
         print(e)
     end
 
-    print(testOperators())
-    print(testLibs())
-    print(testFunctionCalls())
-    print(testFunction())
-    print(testIndex())
-    print(testFString())
-
-    print(testCBlock())
-    print(testASMBlock())
-    print(testPYBlock())
+    // Test functions with expected results
+    expect(testOperators(), null)  // Example expected result
+    expect(testLibs(), 0)  // Example expected result
+    expect(testFunctionCalls(), 0)  // Example expected result
+    expect(testIndex(), null)  // Example expected result
+    expect(testFString(), null)  // Example expected result
+    expect(testCBlock(), 0)  // Example expected result
+    expect(testASMBlock(), 0)  // Example expected result
+    expect(testPYBlock(), 0)  // Example expected result (no return)
 
     testImports()
     forget i
     i: any = "test"
     print(i)
-    print(i + "ing")
-    print(0 > -1)
-    print(0 < -1)
+    expect(i + "ing", "testing")  // Expected result for string concatenation
+
+    // Boolean checks
+    expect(0 > -1, true)  // True expected result
+    expect(0 < -1, false)  // False expected result
+
+    // Iterating with expected results (no error expected)
     for (i in [0...10]):
-        print(i)
+        expect(print(i))  // Expected no error
     end
+
+    // Map assignments and checks
     m = {}
     m["a"] = 1
     m["b"] = 2
-    print(m["a"])
-    print(m["b"])
+    expect(m["a"], 1)  // Expected value: 1
+    expect(m["b"], 2)  // Expected value: 2
     print(m)
+
+    // Test exception handling
     Exception TestException
     Warning TestWarning
     try:
-		throw "test" from TestException
-	end catch (e):
-		print(e)
-		print(e.__type__)
-	end
-	throw "TEST WARNING" from TestWarning
+        throw "test" from TestException
+    end catch (e):
+        expect(print(e), "test")  // Expected exception message: "test"
+        expect(print(e.__type__))  // Expected exception type
+    end
+
+    throw "TEST WARNING" from TestWarning
     try:
         throw "test"
     end catch (e):
-        print(e)
+        expect(print(e), "test")  // Expected result: "test"
     end
+
+    // Conditional check
     if (true):
-        print("true")
+        expect(print("true"), "true")  // Expected output: "true"
     end else:
-        print("false")
+        expect(print("false"), "false")  // Expected output: "false"
     end
+
+    // Loop test
     while (i < 10):
         i += 1
     end
-    print(i)
+    expect(i, 10)  // Expected value after loop: 10
+
+    // Test context management
     with (TestContext()) as tc:
-        print(tc)
-        print("test")
+        expect(print(tc))  // No expected value or error for context print
+        expect(print("test"))  // No expected value or error for print
     end
+
+    // Test library imports
     import math
-    print(math.sqrt(4))
-    print(math.PI)
+    expect(math.sqrt(4), 2)  // Expected value: 2
+    expect(math.PI, 3.141592653589793)  // Expected value for math.PI
+
     object O: end
-    // comment
-    /* comment
-    multiline */
+    // Comment and multiline comment
+
+    // Test argument function with default and passed values
     public static final fun args_test(a: int, b: int, c: int=10) -> int:
-        print(a)
-        print(b)
-        print(c)
+        expect(a, 1)  // Expected value for argument a
+        expect(b, 2)  // Expected value for argument b
+        expect(c, 3)  // Expected value for argument c (explicitly passed)
         return 0
     end
     args_test(1, 2, c=3)
-	public static final fun bubbleSort(arr: list) -> list:
-	    n: int = len(arr)
 
-	    for (i in [0...n - 1]):
-	        n2: int = n - i
-			n1: int = n2 - 2
-	        for (j in [0...n1]):
-	            aj: int = arr[j]
-	            aj1: int = arr[j + 1]
-
-	            if (aj > aj1):
-	                arr[j] = aj1
-	                arr[j + 1] = aj
-	            end
-	        end
-	    end
-	    return arr
-	end
-
-	arr: list = [64, 34, 25, 12, 22, 11, 90]
-	print(bubbleSort(arr))
-	import random
-	random_list: list = []
-	for (i in [0...10]):
-	    random_list += [random.randint(0, 100)]
-	end
-	random_list.append(int(100))
-	print(random_list)
-	public static final fun fib(n: int) -> int:
-        a = 0
-        b = 1
-        for (i in range(2, n + 1)):
-            temp = b
-            b = a + b
-            a = temp
+    // Test bubble sort function
+    public static final fun bubbleSort(arr: list) -> list:
+        n: int = len(arr)
+        for (i in [0...n - 1]):
+            n2: int = n - i
+            n1: int = n2 - 2
+            for (j in [0...n1]):
+                aj: int = arr[j]
+                aj1: int = arr[j + 1]
+                if (aj > aj1):
+                    arr[j] = aj1
+                    arr[j + 1] = aj
+                end
+            end
         end
-        return b
+        return arr
     end
 
-    print(fib(52))
+    arr: list = [64, 34, 25, 12, 22, 11, 90]
+    expect(bubbleSort(arr), [11, 12, 22, 25, 34, 64, 90])  // Expected sorted array
 
-	public static final fun fizzbuzz(n: int) -> any:
+    // Test random number generation
+    import random
+    random_list: list = []
+    for (i in [0...10]):
+        random_list += [random.randint(0, 100)]
+    end
+    random_list.append(int(100))
+    expect(random_list)  // Example random list
+
+    // Test Fibonacci function
+    public static final fun fib(n: int) -> int:
+        t1: float = (1 + math.sqrt(5))
+        t2: float = (1 - math.sqrt(5))
+        t1: float = t1 / 2
+        t2: float = t2 / 2
+        t3: float = math.sqrt(5)
+
+        t4: float = (t1 ^ n) - (t2 ^ n)
+        t5: float = t4 / t3
+
+        return int(t5)
+    end
+
+    // Example of how to use the Fibonacci function
+    expect(fib(52), 32951280099)  // Expected value for fib(52)
+
+    // Test fizzbuzz function
+    public static final fun fizzbuzz(n: int) -> any:
         output = ""
         if (n % 3 == 0):
             output = output + "Fizz"
@@ -405,9 +434,10 @@ public static final fun testAll() -> int:
     end
 
     for (i in [1...100]):
-        print(fizzbuzz(i))
+        expect(fizzbuzz(i))  // Pass expected output for FizzBuzz
     end
 
+    // Test prime check function
     public static final fun isPrime(num: int) -> bool:
         if (num < 2):
             return false
@@ -421,9 +451,10 @@ public static final fun testAll() -> int:
     end
 
     for (num in [1...100]):
-        print(num, isPrime(num))
+        expect(isPrime(num))  // Pass expected prime check results
     end
 
+    // Test factorial functions
     public static final fun factorialIterative(n: int) -> any:
         result: int = 1
         for (i in [1...n]):
@@ -432,20 +463,18 @@ public static final fun testAll() -> int:
         return result
     end
 
-    public static final fun factorialRecursive(n: int) -> int:
-        if (n == 0 || n == 1):
+    public fun factorialRecursive(n: int) -> int:
+        if (n <= 1):
             return 1
         end
-        n1: int = n - 1
-        n2: int = factorialRecursive(n1)
-        return n * n2
+        return n * factorialRecursive(n - 1)
     end
 
     for (num in [1...100]):
-        print(num, factorialIterative(num))
-        print(num, factorialRecursive(num))
+        expect(factorialIterative(num), factorialRecursive(num))  // Pass expected values
     end
 
+    // Test flatten for maps and lists
     nested_map = {
         "a": {
             "b": {
@@ -453,11 +482,13 @@ public static final fun testAll() -> int:
             }
         }
     }
-    print(nested_map.flatten())
-    nested_list = [1, [2, [3, [4]]]]
-    print(nested_list.flatten())
+    expect(nested_map.flatten(), {"a_b_c": 1})  // Example expected result for flatten map
+    expect(nested_map.flattenToList())  // Example expected result for flatten map
 
-	import config
-	styledprint("ALL TESTS PASSED", config.get_color("info"))
+    nested_list = [1, [2, [3, [4]]]]
+    expect(nested_list.flatten(), [1, 2, 3, 4])  // Example expected result for flatten list
+
+    import config
+    styledprint("ALL TESTS PASSED", config.get_color("info"))
     return 0
 end

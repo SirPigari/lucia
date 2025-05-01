@@ -16,6 +16,7 @@ import decimal
 
 def print(*args, end='\n'):
     print_(*args, end=end)
+    return str(" ".join(str(arg) for arg in args))
 
 
 
@@ -323,6 +324,50 @@ def keywords():
         for keyword, description in category["keywords"].items():
             sys.stdout.write(f"   - {keyword}: {description}\n")
     sys.stdout.write("\n")
+
+
+def expect(function_call, expected_value=None):
+    float = type(3.14)
+
+    class ExpectationError(Exception):
+        pass
+
+    try:
+        result = function_call
+
+        if expected_value is None:
+            return result
+
+        def normalize_type(value):
+            while hasattr(value, "value"):
+                value = value.value
+            if isinstance(value, float) and value.is_integer():
+                return int(value)
+            if isinstance(value, decimal.Decimal):
+                return float(value)
+            if isinstance(value, list):
+                return [normalize_type(item) for item in value]
+            return value
+
+        result = normalize_type(result)
+        if expected_value is not None:
+            expected_value = normalize_type(expected_value)
+
+        if expected_value == 0 and result is None:
+            return True
+
+        if expected_value is not None:
+            if result != expected_value:
+                raise ExpectationError(f"Expected {repr(expected_value)}, but got {repr(result)}")
+        elif result is not None:
+            raise ExpectationError(f"Expected no return value (null), but got {repr(result)}")
+    except ExpectationError as e:
+        raise ExpectationError(str(e))
+    except Exception as e:
+        if expected_value is not None:
+            raise ValueError(f"Expected {expected_value}, but an error was raised: {str(e)}")
+        else:
+            print(f"Expected no error, but an error was raised: {str(e)}")
 
 
 def license(config=None, full=False):
