@@ -1,6 +1,6 @@
 # Lucia 1.3
 
-Lucia is a simple, lightweight, and fast programming language made in python.
+Lucia is a simple and lightweight programming language made in python.
 
 ___
 
@@ -13,7 +13,7 @@ ___
 
 ___
 
-Documentation for Lucia 1.2 can be found [here](env/Docs/introduction.md).
+Documentation for Lucia 1.3 can be found [here](env/Docs/introduction.md).
 
 ## Installation
 
