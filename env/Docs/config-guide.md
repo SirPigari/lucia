@@ -21,6 +21,11 @@ Structure of `config.json`
   "warnings": true,
   "use_predefs": true,
   "print_comments": false,
+  "execute_code_blocks": {
+    "C": true,
+    "ASM": true,
+    "PY": true
+  },
   "lucia_file_extensions": [
     ".lucia",
     ".luc",
@@ -29,7 +34,7 @@ Structure of `config.json`
   ],
   "home_dir": "C:\\Users\\sirpigari\\AppData\\Local\\Programs\\LuciaAPL\\env",
   "recursion_limit": 9999,
-  "version": "1.1.2",
+  "version": "1.3",
   "color_scheme": {
     "exception": "#F44350",
     "warning": "#FFC107",
@@ -92,27 +97,34 @@ Configuration Options
 *   **Type:** `bool`
 *   **Description:** If `true`, comments will be printed during execution.
 
-### 9\. `lucia_file_extensions`
+### 9\. `execute_code_blocks`
+*   **Type:** `object`
+*   **Description:** Specifies whether to execute code blocks in different languages. The keys are the language identifiers, and the values are booleans indicating whether to execute that language's code blocks.
+
+    *   `C`: Executes C code blocks.
+    *   `ASM`: Executes Assembly code blocks.
+    *   `PY`: Executes Python code blocks.
+### 10\. `lucia_file_extensions`
 
 *   **Type:** `array` of `string`
 *   **Description:** Specifies the file extensions that Lucia will accept for code files. Default extensions include `.lucia`, `.luc`, `.lc`, and `.l`.
 
-### 10\. `home_dir`
+### 11\. `home_dir`
 
 *   **Type:** `string`
 *   **Description:** The directory where the Lucia environment is located. This path is used by the Lucia interpreter to find environment-specific resources.
 
-### 11\. `recursion_limit`
+### 12\. `recursion_limit`
 
 *   **Type:** `int`
 *   **Description:** Specifies the maximum depth of recursion allowed in Lucia programs. The default value is 9999.
 
-### 12\. `version`
+### 13\. `version`
 
 *   **Type:** `string`
 *   **Description:** Specifies the current version of Lucia. This field should be updated with every new release of Lucia.
 
-### 13\. `color_scheme`
+### 14\. `color_scheme`
 
 *   **Type:** `object`
 *   **Description:** Defines the color scheme used for various elements in the terminal. Each property within the `color_scheme` object corresponds to a different output type and specifies the color for that output.

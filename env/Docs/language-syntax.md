@@ -721,7 +721,7 @@ Lucia supports **code blocks**, which allow you to execute code written in other
 - **Python**
 
 > **Configuration Requirement**  
-> Code blocks require the `execute_code_blocks` option to be set to `true` in your [`config.json`](../config.json) file:
+> Code blocks require the `execute_code_blocks` option to be set to `true` for your language in your [`config.json`](../config.json) file:
 >  ```
 >  {
 >    ...

@@ -9,6 +9,7 @@ files = [
     "installer/LuciaInstaller.nsi",
     "README.md",
     "env/Docs/language-syntax.md",
+    "env/Docs/config-guide.md",
     "lucia.py"
 ]
 
