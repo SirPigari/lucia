@@ -15,7 +15,7 @@ To install Lucia via Git, follow these steps:
 2. Clone the Lucia repository by running the following command:
 
     ```bash
-    git clone https://github.com/username/lucia.git lucia
+    git clone https://github.com/SirPigari/lucia.git lucia
     ```    
 
 3. Navigate to the directory where the repository is cloned:

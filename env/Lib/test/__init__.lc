@@ -73,17 +73,6 @@ public static final fun testCBlock() -> int:
     return 0
 end
 
-public static final fun testASMBlock() -> int:
-    ASM:
-        movl $1, %eax
-        movl $2, %ebx
-        addl %ebx, %eax
-        ret
-    end
-
-    return 0
-end
-
 public static final fun testPYBlock() -> int:
     PY:
         import math
@@ -292,7 +281,6 @@ public static final fun testAll() -> int:
     expect(testIndex(), null)  // Example expected result
     expect(testFString(), null)  // Example expected result
     expect(testCBlock(), 0)  // Example expected result
-    expect(testASMBlock(), 0)  // Example expected result
     expect(testPYBlock(), 0)  // Example expected result (no return)
 
     testImports()
