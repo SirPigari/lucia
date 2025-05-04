@@ -25,6 +25,10 @@ FunctionEnd
 !define MUI_BANNER_TRANSPARENT_TEXT
 Name "Lucia-$Version"
 
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_FUNCTION LaunchLucia
+!define MUI_FINISHPAGE_RUN_TEXT "Run Lucia after install"
+
 !define MUI_UNICON "../env/assets/installer3.ico"
 !define MUI_UNTITLE "Lucia - $Version"
 
@@ -43,10 +47,12 @@ Page custom InstallOptionsPage
 !insertmacro MUI_LANGUAGE "English"
 
 Section "Install Lucia"
+    SetDetailsView show
+
     IfFileExists "$INSTDIR\env\bin\lucia.exe" 0 +2
     Delete "$INSTDIR\env\bin\lucia.exe"
 
-    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 5" "State"
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 4" "State"
         StrCmp $0 "1" 0 +2
         Pop $0
 
@@ -63,7 +69,7 @@ Section "Install Lucia"
          /x installer.py /x env/build /x env/bin/lucia_installer.exe \
          /x installer "C:\Users\sirpigari\Desktop\Projects\LuciaAPL\*.*"
 
-    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 6" "State"
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 5" "State"
         StrCmp $0 "1" 0 CopyConfig
         Goto AfterConfig
 
@@ -85,7 +91,7 @@ Section "Install Lucia"
 
         ExecWait 'cmd.exe /C ""$INSTDIR\env\bin\lucia.exe" --no-color --activate"'
 
-    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 4" "State"
+    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
         StrCmp $0 "1" 0 +2
         Pop $0
 
@@ -203,15 +209,10 @@ End:
     Pop $0
 FunctionEnd
 
-Function .onInstSuccess
-    ReadINIStr $0 "$PLUGINSDIR\\options.ini" "Field 3" "State"
-    StrCmp $0 "1" 0 +2
-    Pop $0
-    StrCmp $0 "" 0 RunWithCMD
-    Goto EndLaunch
-
-RunWithCMD:
-    ExecShell "" "cmd.exe" '/C ""$INSTDIR\env\bin\lucia.exe" --no-color"'
-
-EndLaunch:
+Function LaunchLucia
+    ExecShell "" "$INSTDIR\env\bin\lucia.exe" "--no-color"
 FunctionEnd
+
+Function .onInstSuccess
+FunctionEnd
+

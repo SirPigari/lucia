@@ -345,6 +345,7 @@ class Interpreter:
                     f"{hex_to_ansi(self.config["color_scheme"].get('debug', '#434343'), self.config)}{''.join(map(str, args))}{hex_to_ansi("reset", self.config)}")
 
     def interpret(self, statements):
+        self.variables["_"] = b_classes.Variable("_", null, {"is_final": False})
         for statement in statements:
             statement: dict = dict(statement)
             value = self.evaluate(statement)
@@ -352,6 +353,7 @@ class Interpreter:
                 value = b_classes.Literal(value)
                 if not (isinstance(value, b_classes.Boolean) and value.literal is None):
                     print(value)
+                    self.variables["_"].value = value
             if self.is_returning:
                 return self.return_value
 

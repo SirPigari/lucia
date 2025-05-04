@@ -2,7 +2,6 @@ import sys
 import os
 import shutil
 import psutil
-from tqdm import tqdm
 import tempfile
 import pathspec
 import subprocess
@@ -24,16 +23,14 @@ def delete_folder_with_progress(folder_path):
         print(f"Deleting folder: {folder_path}")
         files = list(os.scandir(folder_path))
         print(f"Found {len(files)} files.")
-        with tqdm(total=len(files), desc="Deleting build folder", unit=" file") as pbar:
-            for entry in files:
-                try:
-                    if entry.is_file() or entry.is_symlink():
-                        os.unlink(entry.path)
-                    elif entry.is_dir():
-                        shutil.rmtree(entry.path)
-                except Exception as e:
-                    print(f"Error deleting {entry.path}: {e}")
-                pbar.update(1)
+        for entry in files:
+            try:
+                if entry.is_file() or entry.is_symlink():
+                    os.unlink(entry.path)
+                elif entry.is_dir():
+                    shutil.rmtree(entry.path)
+            except Exception as e:
+                print(f"Error deleting {entry.path}: {e}")
         shutil.rmtree(folder_path)
     os.makedirs(folder_path)
 

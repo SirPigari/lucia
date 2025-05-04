@@ -1,4 +1,4 @@
-# Lucia 1.3
+# Lucia 1.3.1
 
 Lucia is a simple and lightweight programming language made in python.
 
@@ -13,7 +13,7 @@ ___
 
 ___
 
-Documentation for Lucia 1.3 can be found [here](env/Docs/introduction.md).
+Documentation for Lucia 1.3.1 can be found [here](env/Docs/introduction.md).
 
 ## Installation
 
@@ -25,6 +25,31 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
 
 
 ## Changelog:
+### 1.3.1
+- Updated [CREDITS.md](env/CREDITS.md)
+- Added `fetch` function to builtins
+- Added `requests` library
+- Added `time` library
+- Added `goldenRatio` variable to `math` library
+- Updated [config.json](env/config.json) (see [here](env/Docs/config-guide.md#9-allow_fetch) and [here](env/Docs/config-guide.md#10-execute_code_blocks))
+- Updated [fibonacci.lc](env/Docs/examples/fibonnaci.lc) example to use Binet's formula
+- Added [requestsExample.lc](env/Docs/examples/requestsExample.lc) example
+- Updated testSuiteVersion to 0.0.3b
+- Fixed typos
+- Added `flattenToList` function to `map` type
+- Added `finilize` built-in function to finalize a function (`mutable` -> `final`)
+- Fixed bugs:
+  - Issues with `config` library
+  - Issues with [activate.py](env/activate.py) file
+  - Issues with REPL terminal mode
+  - Many bugs in [pparser.py](pparser.py)
+  - Issues with importing modules (again)
+- Added `__json__` method to built-in types
+- Fixed skill issue on `print` function
+- Added `expect` function to built-ins
+- Removed unused `exports.json` file
+- Added support for `_` variable in REPL mode (last result)
+- Updated [LuciaInstaller.nsi](installer/LuciaInstaller.nsi) file
 ### 1.3.0
 - Added `f-strings`
 - Added `code blocks`, see [here](env/Docs/language-syntax.md#code-blocks)
