@@ -19,6 +19,9 @@ version_pattern = re.compile(r'["\'](\d+\.\d+(?:\.\d+)?)["\']')
 versions_found = set()
 
 for file in files:
+    if not os.path.exists(file):
+        print(f"File not found: {file}")
+        continue
     with open(file, "r") as f:
         content = f.readlines()
 

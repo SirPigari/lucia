@@ -49,7 +49,7 @@ DATA_PATH = os.path.abspath(".").replace("\\", "/")
 FILE = os.path.abspath("lucia.py").replace("\\", "/")
 FILE2 = os.path.abspath("installer.py").replace("\\", "/")
 EXE_PATH = os.path.join(BIN_PATH, "lucia.exe").replace("\\", "/")
-VERSION = "1.3"
+VERSION = "1.3.1"
 
 kill_process("lucia.exe")
 
@@ -94,6 +94,7 @@ config_to_place = {
     "warnings": True,
     "use_predefs": True,
     "print_comments": False,
+    "allow_fetch": True,
     "execute_code_blocks": {
         "C": True,
         "ASM": True,

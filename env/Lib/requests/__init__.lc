@@ -1,0 +1,89 @@
+import config
+
+headers: map | public mutable = {}
+baseUrl: str | public mutable = ""
+
+Warning FetchNotAllowedWarning
+
+isFetchAllowed: bool | public mutable = config.allow_fetch
+
+if (!isFetchAllowed):
+    throw "Fetching is not allowed in this environment. Some functions from 'requests' library now return null" from FetchNotAllowedWarning
+end
+
+public static final fun get(url, params=null) -> any:
+    if (!isFetchAllowed):
+        return null
+    end
+    if (params == null):
+        params = {}
+    end
+    if (baseUrl != ""):
+        url = baseUrl + url
+    end
+    _response = fetch(url, method="GET", params=params)
+    return _response
+end
+
+public static final fun post(url, data=null, json=null) -> any:
+    if (!isFetchAllowed):
+        return null
+    end
+    if (baseUrl != ""):
+        url = baseUrl + url
+    end
+    _response = fetch(url, method="POST", data=data, json_=json)
+    return _response
+end
+
+public static final fun setHeaders(newHeaders: map) -> map:
+    headers = newHeaders
+    return headers
+end
+
+public static final fun setBaseUrl(newBaseUrl: str) -> str:
+    baseUrl = newBaseUrl
+    return baseUrl
+end
+
+public static final fun allowFetch(allow: bool) -> bool:
+    if (allow):
+        config.set("allow_fetch", true)
+        isFetchAllowed = true
+    end else:
+        config.set("allow_fetch", false)
+        isFetchAllowed = false
+    end
+    return allow
+end
+
+public static final fun clearHeaders() -> map:
+    headers = {}
+    return headers
+end
+
+public static final fun getBaseUrl() -> str:
+    return baseUrl
+end
+
+public static final fun getHeaders() -> map:
+    return headers
+end
+
+public static final fun ping(url="/ping") -> bool:
+    if (!isFetchAllowed):
+        return false
+    end
+    if (baseUrl != ""):
+        url = baseUrl + url
+    end
+    try:
+        _response = fetch(url, method="GET")
+        if ((_response != null) && (_response["status"] == 200)):
+            return true
+        end
+        return false
+    catch (e):
+        return false
+    end
+end

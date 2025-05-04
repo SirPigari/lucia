@@ -64,6 +64,12 @@ class Boolean:
 	def __str__(self):
 		return str(self.value)
 
+	def __json__(self):
+		return self.literal
+
+	def default(self):
+		return self.literal
+
 	def __repr__(self):
 		return self.value
 
@@ -135,6 +141,11 @@ class Object:
 				self._data = value.get_data()
 			else:
 				raise TypeError(f"Expected dictionary or Object, got {type(value).__name__}")
+
+	def __json__(self):
+		if self.is_builtin:
+			return self.object.__json__()
+		return self._data
 
 	def __enter__(self):
 		if self.is_builtin:
@@ -221,8 +232,13 @@ class Variable:
 			mods = {"is_final": False, "is_public": True, "is_static": False}
 		self.modifiers = mods
 
+	def __json__(self):
+		return self.value
+
 	def __str__(self):
-		return str(self.value)
+		if self.value is self:
+			return "<self>"
+		return f"{self.value}"
 
 	def __repr__(self):
 		return f"<variable '{self.name}' at {id(self)}>"
@@ -408,6 +424,9 @@ class Decimal(decimal.Decimal):
 	def __repr__(self):
 		return f"{self}"
 
+	def __json__(self):
+		return float(self)
+
 	def __len__(self):
 		return len(str(self))
 
@@ -478,6 +497,11 @@ class Function:
 		if self.is_builtin:
 			self.function = function
 
+	def __json__(self):
+		if self.is_builtin:
+			return self.function.__json__()
+		return None
+
 	def __call__(self, *args, **kwargs):
 		return self.function(*args, **kwargs)
 
@@ -501,6 +525,9 @@ class List(list):
 	def __str__(self):
 		list_ = ", ".join(map(repr_, self))
 		return f"[{list_}]" if list_ else "[]"
+
+	def __json__(self):
+		return list(self)
 
 	def __repr__(self):
 		return f"<list at {id(self)}>"
@@ -527,6 +554,9 @@ class Map(dict):
 	def __str__(self):
 		map_ = ", ".join(f"{repr_(k)}: {repr_(v)}" for k, v in self.items())
 		return f"{{{map_}}}"
+
+	def __json__(self):
+		return dict(self)
 
 	def __repr__(self):
 		return f"<map at {id(self)}>"

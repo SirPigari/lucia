@@ -111,8 +111,11 @@ def range(start, stop=None, step=1):
         start = 0
     return range_(start, stop, step)
 
-def exit():
-    raise SystemExit
+def exit(c=0):
+    if c == 0:
+        sys.exit(0)
+    else:
+        raise SystemExit(c)
 
 
 def help(config=None, func=None):

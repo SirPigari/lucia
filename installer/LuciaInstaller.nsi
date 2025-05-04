@@ -10,7 +10,7 @@ SetOverwrite on
 
 
 Function .onInit
-    StrCpy $Version "1.3"
+    StrCpy $Version "1.3.1"
     InitPluginsDir
     File /oname=$PLUGINSDIR\\options.ini "options.ini"
 FunctionEnd

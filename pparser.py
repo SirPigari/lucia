@@ -530,7 +530,7 @@ class Parser:
             return self.parse_operation()
 
     def parse_return_type(self):
-        if self.token[0] == 'IDENTIFIER':
+        if self.token[0] in ['IDENTIFIER', 'BOOLEAN']:
             return self.parse_type()
         else:
             raise SyntaxError(f"Return type '{self.token[1]}' is not supported.")
@@ -621,6 +621,8 @@ class Parser:
         self.check_for('SEPARATOR', '(')
         self.next()
         condition = self.parse_expression()
+        if not self.token == ('SEPARATOR', ')'):
+            self.pos -= 1
         self.check_for('SEPARATOR', ')')
         self.next()
         self.check_for('SEPARATOR', ':')

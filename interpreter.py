@@ -19,10 +19,31 @@ import json
 import decimal
 import time
 import subprocess
+import urllib.request
 
 false = b_classes.Boolean(False)
 true = b_classes.Boolean(True)
 null = b_classes.Boolean(None)
+og_dumps = json.dumps
+
+
+def custom_serializer(obj):
+    if hasattr(obj, '__json__'):
+        return obj.__json__()
+    elif hasattr(obj, 'to_json'):
+        return obj.to_json()
+    elif isinstance(obj, b_classes.Map):
+        return og_dumps(dict(obj), indent=4)
+    elif isinstance(obj, b_classes.List):
+        return og_dumps(list(obj), indent=4)
+    else:
+        return og_dumps(obj, indent=4)
+
+
+def json_dumps(obj, **kwargs):
+    return og_dumps(obj, **kwargs, default=custom_serializer)
+
+json.dumps = json_dumps
 
 
 def hash_object(obj):
@@ -200,6 +221,8 @@ class Interpreter:
             "getprec": b_classes.Function(is_builtin=True, function=lambda: decimal.getcontext().prec, name="getprec"),
             "id": b_classes.Function(is_builtin=True, function=id_, name="id"),
             "expect": b_classes.Function(is_builtin=True, function=b_functions.expect, name="expect"),
+            "fetch": b_classes.Function(is_builtin=True, function=self.fetch, name="fetch"),
+            "finalize": b_classes.Function(is_builtin=True, function=lambda obj: self.change_attr(obj, "final"), name="finalize"),
         }
 
         self.variables.update({
@@ -215,6 +238,73 @@ class Interpreter:
         self.return_value = b_classes.Boolean(None)
         self.is_returning = False
         self.stack = []
+
+
+    def change_attr(self, obj, state):
+        if state == "final":
+            if isinstance(obj, b_classes.Function):
+                obj.modifiers["is_final"] = True
+            elif isinstance(obj, b_classes.Variable):
+                obj.modifiers["is_final"] = True
+            else:
+                raise AttributeError(f"Object '{obj.name}' is not finalizable.")
+        elif state == "static":
+            if isinstance(obj, b_classes.Function):
+                obj.modifiers["is_static"] = True
+            elif isinstance(obj, b_classes.Variable):
+                obj.modifiers["is_static"] = True
+            else:
+                raise AttributeError(f"Object '{obj.name}' does not support attribute 'static'.")
+        elif state == "public":
+            if isinstance(obj, b_classes.Function):
+                obj.modifiers["is_public"] = True
+            elif isinstance(obj, b_classes.Variable):
+                obj.modifiers["is_public"] = True
+            else:
+                raise AttributeError(f"Object '{obj.name}' does not support attribute 'public'.")
+        elif state == "private":
+            if isinstance(obj, b_classes.Function):
+                obj.modifiers["is_public"] = False
+            elif isinstance(obj, b_classes.Variable):
+                obj.modifiers["is_public"] = False
+            else:
+                raise AttributeError(f"Object '{obj.name}' does not support attribute 'private'.")
+        else:
+            raise ValueError(f"Invalid state '{state}' for object '{obj.name}'.")
+
+
+    def fetch(self, url, *, method='GET', headers=None, params=None, data=None, json_=None):
+        if not self.config.get('allow_fetch', True):
+            raise PermissionError("Fetching is not allowed in this context.")
+
+        headers = headers or {}
+        params = params or {}
+        data = data or {}
+        json_ = json_ or {}
+
+        if params:
+            url += '?' + urllib.parse.urlencode(params)
+
+        if isinstance(json_, dict):
+            body = json.dumps(json_).encode('utf-8')
+            headers['Content-Type'] = 'application/json'
+        elif isinstance(data, dict):
+            body = urllib.parse.urlencode(data).encode('utf-8')
+            headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        else:
+            body = None
+
+        self.debug_log(f"<Fetching {method} {url} with data: {body.decode('utf-8') if body else null}>")
+        req = urllib.request.Request(url, data=body, headers=headers, method=method)
+
+
+        with urllib.request.urlopen(req) as response:
+            self.debug_log(f"<Response status: {response.status}>")
+            return b_classes.Map({
+                'status': response.status,
+                'headers': dict(response.getheaders()),
+                'body': response.read().decode('utf-8')
+            })
 
     def warn(self, message, category, stacklevel=3):
         if self.config.get('warnings', True):
@@ -575,6 +665,11 @@ class Interpreter:
         if isinstance(right, list):
             right = b_classes.List(right)
 
+        if isinstance(left, b_classes.Boolean):
+            left = left.literal
+        if isinstance(right, b_classes.Boolean):
+            right = right.literal
+
         return self.make_operation(left, right, operator)
 
     def make_operation(self, left, right, operator):
@@ -927,6 +1022,7 @@ class Interpreter:
                         "false": false,
                         "null": null,
                         "Boolean": b_classes.Boolean,
+                        "json": json,
                     }
 
                     # Copy environment and execute
@@ -1307,8 +1403,6 @@ class Interpreter:
             pass
         if name in self.variables:
             iterable = self.variables[name]
-        elif name in self.objects:
-            iterable = self.objects[name]
         elif hasattr(builtins, name):
             iterable = getattr(builtins, name)
         else:

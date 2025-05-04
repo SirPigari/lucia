@@ -8,7 +8,7 @@ import warnings
 import platform
 
 WORKING_DIR = os.path.dirname(__file__)
-VERSION = "1.3"
+VERSION = "1.3.1"
 CALL_PATH = os.getcwd()
 
 if hasattr(sys, 'frozen'):
@@ -28,6 +28,7 @@ import interpreter
 import pparser
 import lexer
 from env.Lib.Builtins.exceptions import WrappedException
+
 
 def clear_exit(code=0):
     globals_copy = globals().copy()
@@ -143,6 +144,7 @@ def activate():
         "warnings": True,
         "use_predefs": True,
         "print_comments": False,
+        "allow_fetch": True,
         "execute_code_blocks": {
             "C": True,
             "ASM": True,
@@ -240,6 +242,7 @@ if recursion_limit > 10000:
 PLACEHOLDER = object()
 
 check_config()
+config["config_file"] = CONFIG_PATH
 
 if "--activate" in sys.argv:
     try:

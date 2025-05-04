@@ -1,0 +1,15 @@
+import requests
+
+requests.setBaseUrl("https://jsonplaceholder.typicode.com")
+
+requests.setHeaders({
+    "Authorization": "Bearer token123"
+})
+
+requests.allowFetch(true)
+
+response = requests.get("/posts", { "userId": 1 })
+print(response)
+
+response = requests.post("/posts", { "title": "foo", "body": "bar", "userId": 1 })
+print(response)

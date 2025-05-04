@@ -143,7 +143,7 @@ Lucia supports f-strings for string interpolation, allowing you to embed variabl
 ### Basic Usage
 ```lucia
 name: str = "Lucia"
-version: str = "1.3"
+version: str = "1.3.1"
 greeting: str = f"Hello, {name}! Welcome to Lucia version {version}."
 print(greeting)
 // Output: Hello, Lucia! Welcome to Lucia version 1.2.1.
