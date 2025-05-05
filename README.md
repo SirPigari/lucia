@@ -6,10 +6,7 @@ ___
 
 ## Currently working on:
 
-- Fixing bugs
-- Documentation
-- Testing
-- Adding more features
+- Converting the entire codebase to rust... god what have I done this is gonna take forever
 
 ___
 
