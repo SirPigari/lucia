@@ -3,6 +3,8 @@ import sys
 import re
 import time
 import decimal
+from .classes import Str, Int, List, Map, Float
+import math
 
 str_ = str
 int_ = int
@@ -10,9 +12,6 @@ float_ = float
 range_ = range
 len_ = len
 print_ = print
-
-import sys
-import decimal
 
 def print(*args, end='\n'):
     print_(*args, end=end)
@@ -90,16 +89,37 @@ def declen(obj):
     else:
         raise TypeError(f"Object of type '{type(obj).__name__}' has no 'declen'.")
 
-def str(obj):
-    return str_(obj)
+def str(obj=None):
+    if obj is None:
+        return Str("")
+    return Str(obj)
 
 def int(*args):
     if not args:
         return 0
-    return int_(*args)
+    return Int(*args)
 
-def float(obj):
-    return float_(obj)
+def float(obj=None):
+    if obj is None:
+        return Float(0.0)
+    return Float(obj)
+
+def list(obj=None):
+    if obj is None:
+        return List([])
+    return List(obj)
+
+def map(obj=None):
+    if obj is None:
+        return Map({})
+    return Map(obj)
+
+def abs(obj=None):
+    if not obj:
+        return 0
+    if obj >= 0:
+        return obj
+    return -obj
 
 def range(start, stop=None, step=1):
     try:
@@ -159,6 +179,21 @@ def help(config=None, func=None):
             "type": "function",
             "example": "str(42)",
             "description": "Converts a value to a string."
+        },
+        "list": {
+            "type": "function",
+            "example": "list([1, 2, 3])",
+            "description": "Creates a list from the given iterable."
+        },
+        "map": {
+            "type": "function",
+            "example": "map({'key': 'value'})",
+            "description": "Creates a map (dictionary) from the given iterable."
+        },
+        "abs": {
+            "type": "function",
+            "example": "abs(-42)",
+            "description": "Returns the absolute value of a number. (use |x| for better practise)"
         },
         "range": {
             "type": "function",

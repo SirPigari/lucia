@@ -8,6 +8,8 @@ def _custom_serializer(obj):
 
 
 def get_config(key, default=None):
+	if not default:
+		return config[key]
 	return config.get(key, default)
 
 def set(key, value):

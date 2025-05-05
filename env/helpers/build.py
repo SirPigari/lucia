@@ -36,7 +36,7 @@ def delete_folder_with_progress(folder_path):
 
 
 os.chdir(os.path.dirname(__file__))
-os.chdir("../")
+os.chdir("../../")
 
 BUILD_PATH = os.path.abspath("env/build").replace("\\", "/")
 BIN_PATH = os.path.abspath("env/bin").replace("\\", "/")

@@ -1,7 +1,7 @@
 import os
 import re
 
-os.chdir("../")
+os.chdir("../../")
 
 files = [
     "env/config.json",

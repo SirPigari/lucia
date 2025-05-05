@@ -86,7 +86,7 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
   - `testFunctionCalls` - Tests function calls in lucia.
   - `testLibs` - Tests libraries in lucia.
   - `testOperators` - Tests operators in lucia.
-- Added [`update_version.py`](env/update_version.py)
+- Added [`update_version.py`](env/helpers/update_version.py)
 ### 1.2.0
 - Added `flatten` function to `list` and `map` modules:
 - Added `Exception` and `Warning` keywords:
