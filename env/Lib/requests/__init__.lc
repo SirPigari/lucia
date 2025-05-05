@@ -36,6 +36,67 @@ public static final fun post(url, data=null, json=null) -> any:
     return _response
 end
 
+public static final fun put(url, data=null, json=null) -> any:
+    if (!isFetchAllowed):
+        return null
+    end
+    if (baseUrl != ""):
+        url = baseUrl + url
+    end
+    _response = fetch(url, method="PUT", data=data, json_=json)
+    return _response
+end
+
+public static final fun delete(url, data=null, json=null) -> any:
+    if (!isFetchAllowed):
+        return null
+    end
+    if (baseUrl != ""):
+        url = baseUrl + url
+    end
+    _response = fetch(url, method="DELETE", data=data, json_=json)
+    return _response
+end
+
+public static final fun patch(url, data=null, json=null) -> any:
+    if (!isFetchAllowed):
+        return null
+    end
+    if (baseUrl != ""):
+        url = baseUrl + url
+    end
+    _response = fetch(url, method="PATCH", data=data, json_=json)
+    return _response
+end
+
+public static final fun head(url, params=null) -> any:
+    if (!isFetchAllowed):
+        return null
+    end
+    if (params == null):
+        params = {}
+    end
+    if (baseUrl != ""):
+        url = baseUrl + url
+    end
+    _response = fetch(url, method="HEAD", params=params)
+    return _response
+end
+
+public static final fun options(url, params=null) -> any:
+    if (!isFetchAllowed):
+        return null
+    end
+    if (params == null):
+        params = {}
+    end
+    if (baseUrl != ""):
+        url = baseUrl + url
+    end
+    _response = fetch(url, method="OPTIONS", params=params)
+    return _response
+end
+
 public static final fun setHeaders(newHeaders: map) -> map:
     headers = newHeaders
     return headers
