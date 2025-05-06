@@ -6,12 +6,14 @@ ___
 
 ## Currently working on:
 
-- Converting the entire codebase to rust... god what have I done this is gonna take forever
+- Converting the entire codebase to [rust](https://www.rust-lang.org/)... god what have I done this is gonna take forever
 - Atleast its gonna be **BLAZINGLY FAST**
-- And rust is femboy lang
-___
+- And rust is a [femboy lang](https://www.reddit.com/r/feminineboys/comments/j91rv7/comment/g8gk0fy/?context=3)
 
-Documentation for Lucia 1.3.1 can be found [here](env/Docs/introduction.md).
+---
+
+Documentation for Lucia 1.3.1 can be found [here](env/Docs/introduction.md).  
+About [versioning](env/Docs/versioning.md)
 
 ## Installation
 
@@ -65,7 +67,7 @@ Follow the instructions in the [installation guide](env/Docs/installation-guide.
 - Variables now cannot be named one of these: ASM, C, PY
 - Added support for single-quote strings (`'`)
 ### 1.2.1
-- Changed the lucia logo, new logo: ![Lucia Logo](env/assets/lucia_logo_small.png)
+- Changed the lucia logo, new logo: ![Lucia Logo](env/assets/lucia_logo_small.png "Lucia Logo")
 - Fixed typos
 - Fixed bugs:
   - Error when python function returned None, now it returns `null`

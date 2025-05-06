@@ -5,7 +5,8 @@ os.chdir("../../")
 
 files = [
     "env/config.json",
-    "env/build.py",
+    "env/helpers/build.py",
+    "env/activate.py",
     "installer/LuciaInstaller.nsi",
     "README.md",
     "env/Docs/language-syntax.md",
