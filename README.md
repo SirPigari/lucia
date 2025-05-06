@@ -6,10 +6,9 @@ ___
 
 ## Currently working on:
 
-- Converting the entire codebase to [rust](https://www.rust-lang.org/)... god what have I done this is gonna take forever
+- Converting the entire codebase to <a href="https://www.rust-lang.org/" target="_blank">Rust</a>... god what have I done this is gonna take forever
 - Atleast its gonna be **BLAZINGLY FAST**
-- And rust is a [femboy lang](https://www.reddit.com/r/feminineboys/comments/j91rv7/comment/g8gk0fy/?context=3)
-
+- And rust is a <a href="https://www.reddit.com/r/feminineboys/comments/j91rv7/comment/g8gk0fy/?context=3" target="_blank">femboy lang</a>
 ---
 
 Documentation for Lucia 1.3.1 can be found [here](env/Docs/introduction.md).  

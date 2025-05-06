@@ -3,8 +3,7 @@
 
 ---
 
-We use [Semantic Versioning](https://semver.org/) (SemVer) for versioning our releases. The version number follows the format `MAJOR.MINOR.PATCH`, where:
-
+We use <a href="https://semver.org/" target="_blank">Semantic Versioning</a> (SemVer) for versioning our releases. The version number follows the format `MAJOR.MINOR.PATCH`, where:
 - **MAJOR** version is incremented when incompatible API changes are introduced.
 - **MINOR** version is incremented when functionality is added in a backward-compatible manner.
 - **PATCH** version is incremented when backward-compatible bug fixes are made.
