@@ -7,7 +7,8 @@ ___
 ## Currently working on:
 
 - Converting the entire codebase to rust... god what have I done this is gonna take forever
-
+- Atleast its gonna be **BLAZINGLY FAST**
+- And rust is femboy lang
 ___
 
 Documentation for Lucia 1.3.1 can be found [here](env/Docs/introduction.md).
