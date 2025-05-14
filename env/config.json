@@ -3,7 +3,7 @@
   "debug": true,
   "debug_mode": "full",
   "supports_color": true,
-  "use_lucia_traceback": false,
+  "use_lucia_traceback": true,
   "warnings": true,
   "use_predefs": true,
   "print_comments": false,

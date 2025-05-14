@@ -1596,7 +1596,7 @@ class Interpreter:
             #include "{make_c_path(os.path.abspath(f"{self.config['home_dir']}/Lib/C/include/export.h"))}"
             
             int main() {{
-                __asm__ __volatile__ ("{code}");
+                __asm__ ("{code}");
                 return 0;
             }}
             
