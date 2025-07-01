@@ -2,6 +2,9 @@
 
 Lucia is a simple and lightweight programming language made in python.
 
+## Switching to Rust
+Check out [SirPigari/lucia-rust](https://github.com/SirPigari/lucia-rust)
+
 ___
 
 ## Currently working on:
